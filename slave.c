@@ -19,26 +19,14 @@ int main (int argc, const char * argv[]){
             break;
         }
         char md5[MAX_MD5+strlen(path)+OFFSET];
-//        FILE * fp=popen(command,"r");
-//             if (fp == NULL) {
-//            perror("popen");
-//            exit(EXIT_FAILURE);
-//        }
-//        fgets(md5, MAX_MD5+strlen(path) + OFFSET, fp);
-//        pclose(fp);
-        int pipe_md5[2];
-        pipe(pipe_md5);
-        if(fork() == 0){
-            close(pipe_md5[0]);
-
-            dup2( pipe_md5[1],STDOUT_FILENO);
-            close(pipe_md5[1]);
-
-            char *args[] = {"/usr/bin/md5sum", path, NULL};
-            execve(args[0], args, NULL);
+        sprintf(command,md5_cmd,path);
+        FILE * fp=popen(command,"r");
+             if (fp == NULL) {
+            perror("popen");
             exit(EXIT_FAILURE);
         }
-        pipe_read(pipe_md5[0], md5);
+        fgets(md5, MAX_MD5+strlen(path), fp);
+        pclose(fp);
         write(STDOUT_FILENO,md5,strlen(md5)+1);
     }
     close(STDOUT_FILENO);
