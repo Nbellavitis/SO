@@ -11,6 +11,7 @@
 #define MIN(x,y) (x<y) ? x:y 
 char path[100];
 int pipe_read(int fd, char *buff);
+void set_fd(int child_to_parent_pipe[][2], int * max_fd, fd_set * readfds,int child_qty);
 FILE * resultado;
 int main(int argc, const char *argv[]){
     int child_qty=MIN(MAX_CHILD_QTY,argc-1);
@@ -64,8 +65,9 @@ for(int i=0;i<INITIAL_FILES_PER_CHILD;i++){
    fd_set readfds;
     int max_fd = -1;
 
-for (int i = 0; i < argc-1; i++) { // hay que corregir esto
-    FD_SET(child_to_parent_pipe[i%child_qty][0], &readfds);
+for (int i = 0; i < argc-1; i) { // hay que corregir esto --creo que ahi esta? (feo igual )
+    set_fd(child_to_parent_pipe,&max_fd,&readfds,child_qty);
+         select(max_fd+1,&readfds,NULL,NULL,NULL);
             if (FD_ISSET(child_to_parent_pipe[i%child_qty][0], &readfds)) {
                 int bytes_read = pipe_read(child_to_parent_pipe[i%child_qty][0], path);
                 if (bytes_read < 0) {
@@ -76,12 +78,24 @@ for (int i = 0; i < argc-1; i++) { // hay que corregir esto
                 } else {
                     fprintf(resultado, "ID:%d MD5:%s\n", child_pid[i%child_qty], path);
                     fflush(resultado);
+                      if (files_assigned < argc) {
+                      write(parent_to_child_pipe[i%child_qty][1],argv[files_assigned],strlen(argv[files_assigned++])+1);
+                    }
+                    i++;
                 }
             }}
 exit(EXIT_SUCCESS);
-
-
 }
+
+void set_fd(int child_to_parent_pipe[][2], int * max_fd, fd_set * readfds,int child_qty){
+     for (int i = 0; i < child_qty; i++) {
+        if (child_to_parent_pipe[i][0] > *max_fd) {
+            *max_fd = child_to_parent_pipe[i][0];
+        }
+        FD_SET(child_to_parent_pipe[i][0], readfds);
+    }
+}
+
 int pipe_read(int fd, char *buff){
     int i=0;
     char last_charater_read[1];
