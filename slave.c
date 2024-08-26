@@ -25,7 +25,7 @@ int main (int argc, const char * argv[]){
             perror("popen");
             exit(EXIT_FAILURE);
         }
-        fgets(md5, MAX_MD5+strlen(path), fp);
+        fgets(md5, MAX_MD5+strlen(path)+ OFFSET, fp);
         pclose(fp);
         write(STDOUT_FILENO,md5,strlen(md5)+1);
     }

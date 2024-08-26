@@ -40,15 +40,31 @@ int main(int argc, const char *argv[]){
     }
 
  int total_files_to_process=argc-1;
-for(int i=0;i<total_files_to_process;i++){
+for(int i=0;i<INITIAL_FILES_PER_CHILD;i++){
     for(int child_index=0;child_index<child_qty && files_assigned <= total_files_to_process;child_index++,files_assigned++){
         write(parent_to_child_pipe[child_index][1],argv[files_assigned],strlen(argv[files_assigned])+1);  
     }
 }
+//fd_set writefds;
+//while(files_assigned< total_files_to_process){
+//    for(int child_index=0;child_index<child_qty; child_index++){
+//        FD_SET(parent_to_child_pipe[child_index][1], &writefds);
+//    }
+//    int n = select(); // escribir bien
+//    for(int child_index=0; child_index < child_qty && files_assigned <= total_files_to_process; child_index++){
+//        if(FD_ISSET(parent_to_child_pipe[child_index][1], &writefds)){
+//            write(parent_to_child_pipe[child_index][1],argv[files_assigned],strlen(argv[files_assigned])+1);
+//            files_assigned++;
+//        }
+//    }
+//}
+
+
+
    fd_set readfds;
     int max_fd = -1;
 
-for (int i = 0; i < argc-1; i++) {
+for (int i = 0; i < argc-1; i++) { // hay que corregir esto
     FD_SET(child_to_parent_pipe[i%child_qty][0], &readfds);
             if (FD_ISSET(child_to_parent_pipe[i%child_qty][0], &readfds)) {
                 int bytes_read = pipe_read(child_to_parent_pipe[i%child_qty][0], path);
