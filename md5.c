@@ -6,24 +6,18 @@
 #define MAX_PATH 128
 #define MIN(x,y) (x<y) ? x:y 
 char path[100];
-void set_fd(int child_to_parent_pipe[][2], int * max_fd, fd_set * readfds,int child_qty);
+void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * readfds,int child_qty);
 FILE * resultado;
 
 
-void set_fd(int child_to_parent_pipe[][2], int * max_fd, fd_set * readfds,int child_qty){
+void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * readfds,int child_qty){
      for (int i = 0; i < child_qty; i++) {
-        if (child_to_parent_pipe[i][0] > *max_fd) {
-            *max_fd = child_to_parent_pipe[i][0];
+        if (child_to_parent_pipe[i][flag] > *max_fd) {
+            *max_fd = child_to_parent_pipe[i][flag];
         }
-        FD_SET(child_to_parent_pipe[i][0], readfds);
+        FD_SET(child_to_parent_pipe[i][flag], readfds);
     }
 }
-
-
-
-
-
-
 
 int main(int argc, const char *argv[]){
     int child_qty=MIN(MAX_CHILD_QTY,argc-1);
@@ -74,12 +68,15 @@ for(int i=0;i<INITIAL_FILES_PER_CHILD;i++){
 
 
 
-   fd_set readfds;
-    int max_fd = -1;
+   fd_set readfds,writefds;
+    int max_read = -1;
+    int max_write=-1;
 
 for (int i = 0; i < argc-1; ) { // hay que corregir esto --creo que ahi esta? (feo igual )
-    set_fd(child_to_parent_pipe,&max_fd,&readfds,child_qty);
-         select(max_fd+1,&readfds,NULL,NULL,NULL);
+    set_fd(child_to_parent_pipe,0,&max_read,&readfds,child_qty);
+    set_fd(parent_to_child_pipe,1,&max_write,&writefds,child_qty);
+         select(max_read+1,&readfds,NULL,NULL,NULL);
+         select(max_write+1,NULL,&writefds,NULL,NULL);
             if (FD_ISSET(child_to_parent_pipe[i%child_qty][0], &readfds)) {
                 int bytes_read = pipe_read(child_to_parent_pipe[i%child_qty][0], path);
                 if (bytes_read < 0) {
@@ -90,7 +87,7 @@ for (int i = 0; i < argc-1; ) { // hay que corregir esto --creo que ahi esta? (f
                 } else {
                     fprintf(resultado, "ID:%d MD5:%s\n", child_pid[i%child_qty], path);
                     fflush(resultado);
-                    if (files_assigned < argc) {
+                    if (files_assigned < argc && FD_ISSET(parent_to_child_pipe[i%child_qty][1], &writefds)) {
                     write(parent_to_child_pipe[i%child_qty][1], argv[files_assigned], strlen(argv[files_assigned]) + 1); //VER SI ESTA LIBERADO PARA ESCRIBIR
                     files_assigned++;
                     }
