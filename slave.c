@@ -1,12 +1,8 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include "commons.h"
+#include "pipe_master.h"
 #define MAX_MD5 32
 #define MAX_PATH 128
 #define OFFSET 3
-int pipe_read(int fd, char *buff);
 int main (int argc, const char * argv[]){
 
     char path[MAX_PATH] ;
@@ -46,16 +42,3 @@ int main (int argc, const char * argv[]){
 // llamar a md5 (investigar el uso de system || o popen() )
 // enviar nombre y md5 al padre (ver como)
 }
-int pipe_read(int fd, char *buff){
-    int i=0;
-    char last_charater_read[1];
-    last_charater_read[0]=1;
-
-    while(last_charater_read[0]!=0 && last_charater_read[0]!='\n' && read(fd,last_charater_read,1)>0){
-        buff[i++]=last_charater_read[0];
-    }
-    buff[i]=0;
-
-    return i;
-}
-

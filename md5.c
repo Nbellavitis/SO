@@ -1,18 +1,30 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#define MAX_CHILD_QTY 10
+#include "commons.h"
+#include "pipe_master.h"
+#define MAX_CHILD_QTY 5
 #define INITIAL_FILES_PER_CHILD 2
 #define MAX_MD5 32
 #define MAX_PATH 128
 #define MIN(x,y) (x<y) ? x:y 
 char path[100];
-int pipe_read(int fd, char *buff);
 void set_fd(int child_to_parent_pipe[][2], int * max_fd, fd_set * readfds,int child_qty);
 FILE * resultado;
+
+
+void set_fd(int child_to_parent_pipe[][2], int * max_fd, fd_set * readfds,int child_qty){
+     for (int i = 0; i < child_qty; i++) {
+        if (child_to_parent_pipe[i][0] > *max_fd) {
+            *max_fd = child_to_parent_pipe[i][0];
+        }
+        FD_SET(child_to_parent_pipe[i][0], readfds);
+    }
+}
+
+
+
+
+
+
+
 int main(int argc, const char *argv[]){
     int child_qty=MIN(MAX_CHILD_QTY,argc-1);
     int parent_to_child_pipe[child_qty][2];
@@ -65,7 +77,7 @@ for(int i=0;i<INITIAL_FILES_PER_CHILD;i++){
    fd_set readfds;
     int max_fd = -1;
 
-for (int i = 0; i < argc-1; i) { // hay que corregir esto --creo que ahi esta? (feo igual )
+for (int i = 0; i < argc-1; ) { // hay que corregir esto --creo que ahi esta? (feo igual )
     set_fd(child_to_parent_pipe,&max_fd,&readfds,child_qty);
          select(max_fd+1,&readfds,NULL,NULL,NULL);
             if (FD_ISSET(child_to_parent_pipe[i%child_qty][0], &readfds)) {
@@ -78,8 +90,9 @@ for (int i = 0; i < argc-1; i) { // hay que corregir esto --creo que ahi esta? (
                 } else {
                     fprintf(resultado, "ID:%d MD5:%s\n", child_pid[i%child_qty], path);
                     fflush(resultado);
-                      if (files_assigned < argc) {
-                      write(parent_to_child_pipe[i%child_qty][1],argv[files_assigned],strlen(argv[files_assigned++])+1);
+                    if (files_assigned < argc) {
+                    write(parent_to_child_pipe[i%child_qty][1], argv[files_assigned], strlen(argv[files_assigned]) + 1); //VER SI ESTA LIBERADO PARA ESCRIBIR
+                    files_assigned++;
                     }
                     i++;
                 }
@@ -87,25 +100,4 @@ for (int i = 0; i < argc-1; i) { // hay que corregir esto --creo que ahi esta? (
 exit(EXIT_SUCCESS);
 }
 
-void set_fd(int child_to_parent_pipe[][2], int * max_fd, fd_set * readfds,int child_qty){
-     for (int i = 0; i < child_qty; i++) {
-        if (child_to_parent_pipe[i][0] > *max_fd) {
-            *max_fd = child_to_parent_pipe[i][0];
-        }
-        FD_SET(child_to_parent_pipe[i][0], readfds);
-    }
-}
-
-int pipe_read(int fd, char *buff){
-    int i=0;
-    char last_charater_read[1];
-    last_charater_read[0]=1;
-
-    while(last_charater_read[0]!=0 && last_charater_read[0]!='\n' && read(fd,last_charater_read,1)>0){
-        buff[i++]=last_charater_read[0];
-    }
-    buff[i]=0;
-
-    return i;
-}
 
