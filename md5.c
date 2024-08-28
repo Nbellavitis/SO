@@ -1,13 +1,27 @@
 #include "commons.h"
 #include "pipe_master.h"
+#include <fcntl.h>
+#include <errno.h>
 #define MAX_CHILD_QTY 5
 #define INITIAL_FILES_PER_CHILD 2
 #define MAX_MD5 32
 #define MAX_PATH 128
 #define MIN(x,y) (x<y) ? x:y 
 char path[100];
+
 void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * readfds,int child_qty);
 FILE * resultado;
+
+int is_fd_open(int fd) {
+    if (fcntl(fd, F_GETFD) == -1) {
+        if (errno == EBADF) {
+            return 0;  // File descriptor is not open
+        }
+    }
+    return 1;  // File descriptor is open
+}
+
+
 
 
 void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * readfds,int child_qty){
@@ -27,9 +41,15 @@ int main(int argc, const char *argv[]){
     resultado= fopen("salida.txt", "wr");
     int files_assigned=1;
     for(int i=0;i<child_qty;i++){
-        pipe(parent_to_child_pipe[i]);
-        pipe(child_to_parent_pipe[i]);
-        if ( (child_pid[i]=fork())== 0) {   // soy hijo
+        if(pipe(parent_to_child_pipe[i]) == -1 || pipe(child_to_parent_pipe[i]) == -1){
+            perror("pipe");
+            exit(EXIT_FAILURE);
+        }
+
+        if((child_pid[i]=fork())== -1){
+            perror("fork");
+            exit(EXIT_FAILURE);
+        }else if( child_pid[i]== 0) {   
              close(parent_to_child_pipe[i][1]);
              close(child_to_parent_pipe[i][0]);
             
@@ -94,7 +114,33 @@ for (int i = 0; i < argc-1; ) { // hay que corregir esto --creo que ahi esta? (f
                     i++;
                 }
             }}
+
+for (size_t i = 0; i < child_qty; i++)
+{
+    if(is_fd_open(child_to_parent_pipe[i][0])){
+        fprintf(resultado,"Child to parent, read %d\n",i);
+        fflush(resultado);
+        close(child_to_parent_pipe[i][0]);
+    }
+    if(is_fd_open(child_to_parent_pipe[i][1])){
+        fprintf(resultado,"Child to parent, write %d\n",i);
+        fflush(resultado);
+        close(child_to_parent_pipe[i][1]);
+    }
+    if(is_fd_open(parent_to_child_pipe[i][0])){
+        fprintf(resultado,"parent to child, read %d\n",i);
+        fflush(resultado);
+        close(parent_to_child_pipe[i][0]);
+    }
+    if(is_fd_open(parent_to_child_pipe[i][1])){
+        fprintf(resultado,"parent to child, write %d\n",i);
+        fflush(resultado);
+        close(parent_to_child_pipe[i][1]);
+
+    }
+}
+fprintf(resultado,"childq = %d",child_qty);
+fflush(resultado);
 exit(EXIT_SUCCESS);
 }
-
 

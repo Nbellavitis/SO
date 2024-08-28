@@ -1,0 +1,23 @@
+ID:337 MD5:3560c33b19a442040033f8d95d9c2987  README.md
+ID:338 MD5:eef6d8cbef1a9b80f420152d0738fe55  commons.h
+ID:339 MD5:f102ba333493692570be50864485eb88  compile.sh
+ID:340 MD5:2788f26ad2003aa814119da118100786  makefile
+ID:341 MD5:1db2826faa9c8a43c0aa5dd6e24bed97  md5
+ID:337 MD5:d48f94161606b86c136332dd33cf54ee  md5.c
+ID:338 MD5:437c211936a5f2f09b902cf28edd0cdb  pipe_master.c
+ID:339 MD5:aa397ade5f35d9ea4ab121c72b7b871c  pipe_master.h
+ID:340 MD5:d41d8cd98f00b204e9800998ecf8427e  salida.txt
+ID:341 MD5:12cdc9f4fd478b5d8a907a2bf91034f4  slave
+ID:337 MD5:ed5573fbc7554b3472e2eb505cf7e5b6  slave.c
+ID:338 MD5:e0ee942af87879d729df2336b8c3d655  view.c
+Child to parent, read 0
+parent to child, write 0
+Child to parent, read 1
+parent to child, write 1
+Child to parent, read 2
+parent to child, write 2
+Child to parent, read 3
+parent to child, write 3
+Child to parent, read 4
+parent to child, write 4
+childq = 5
