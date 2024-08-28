@@ -88,6 +88,16 @@ void send_initial_files(int child_qty, int total_files_to_process, int * files_a
         send_to_process(child_index, INITIAL_FILES_PER_CHILD, files_assigned,parent_to_child_pipe, argv);
     }
 }
+void close_pipes_that_are_not_mine(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int my_index){
+    for(int i=0; i<my_index; i++){
+        if(i!=my_index){
+            for(int j=0; j<2; j++){
+                close(parent_to_child_pipe[i][j]);
+                close(child_to_parent_pipe[i][j]);
+            }
+        }
+    }
+}
 
 int main(int argc, const char *argv[]){
     int child_qty=MIN(MAX_CHILD_QTY,argc-1);
@@ -97,6 +107,8 @@ int main(int argc, const char *argv[]){
     resultado= fopen("salida.txt", "wr");
     int files_assigned=1;
     for(int i=0;i<child_qty;i++){ // podria llamar a este loop como una nueva funcion
+        close_pipes_that_are_not_mine(parent_to_child_pipe,child_to_parent_pipe,i);
+
         create_pipes(parent_to_child_pipe,child_to_parent_pipe,i);
 
         create_child_process(parent_to_child_pipe,child_to_parent_pipe,i, child_pid);
