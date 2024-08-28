@@ -64,6 +64,8 @@ int main(int argc, const char *argv[]){
             exit(EXIT_FAILURE);
         }
         close(parent_to_child_pipe[i][0]);
+        close(child_to_parent_pipe[i][1]);
+
     }
 
  int total_files_to_process=argc-1;
@@ -103,7 +105,7 @@ for (int i = 0; i < argc-1; ) { // hay que corregir esto --creo que ahi esta? (f
                     perror("read");
                     exit(EXIT_FAILURE);
                 } else if (bytes_read == 0) {
-                    close(child_to_parent_pipe[i%child_qty][0]);
+                    //close(child_to_parent_pipe[i%child_qty][0]);
                 } else {
                     fprintf(resultado, "ID:%d MD5:%s\n", child_pid[i%child_qty], path);
                     fflush(resultado);
@@ -117,30 +119,11 @@ for (int i = 0; i < argc-1; ) { // hay que corregir esto --creo que ahi esta? (f
 
 for (size_t i = 0; i < child_qty; i++)
 {
-    if(is_fd_open(child_to_parent_pipe[i][0])){
-        fprintf(resultado,"Child to parent, read %d\n",i);
-        fflush(resultado);
-        close(child_to_parent_pipe[i][0]);
-    }
-    if(is_fd_open(child_to_parent_pipe[i][1])){
-        fprintf(resultado,"Child to parent, write %d\n",i);
-        fflush(resultado);
-        close(child_to_parent_pipe[i][1]);
-    }
-    if(is_fd_open(parent_to_child_pipe[i][0])){
-        fprintf(resultado,"parent to child, read %d\n",i);
-        fflush(resultado);
-        close(parent_to_child_pipe[i][0]);
-    }
-    if(is_fd_open(parent_to_child_pipe[i][1])){
-        fprintf(resultado,"parent to child, write %d\n",i);
-        fflush(resultado);
-        close(parent_to_child_pipe[i][1]);
-
-    }
+    close(child_to_parent_pipe[i][0]);
+    close(parent_to_child_pipe[i][1]);
 }
-fprintf(resultado,"childq = %d",child_qty);
-fflush(resultado);
+
+
 exit(EXIT_SUCCESS);
 }
 
