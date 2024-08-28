@@ -1,8 +1,8 @@
 #include "shared_memory.h"
 #define SHARED_MEMORY_SIZE 1048576 // 1MB
-sem_t *initialize_semaphore(const char *name, int value){
-    sem_t * sem=sem_open(name,O_CREAT | O_RDWR,0666,value);
-       if (sem == SEM_FAILED) {
+sem_t *initialize_semaphore(const char *name, int value) {
+    sem_t *sem = sem_open(name, O_CREAT, 0666, value);
+    if (sem == SEM_FAILED) {
         perror("sem_open");
         exit(EXIT_FAILURE);
     }
