@@ -63,7 +63,9 @@ void create_child_process(int parent_to_child_pipe[][2], int child_to_parent_pip
         exit(EXIT_FAILURE);
     }else if( child_pid[index]== 0) {
 
+        close_pipes_that_are_not_mine(parent_to_child_pipe,child_to_parent_pipe,index);
         handle_pipes_child(parent_to_child_pipe, child_to_parent_pipe, index);
+
 
         char *args[] = {"slave", NULL};
         execve(args[0], args, NULL);
@@ -88,14 +90,13 @@ void send_initial_files(int child_qty, int total_files_to_process, int * files_a
         send_to_process(child_index, INITIAL_FILES_PER_CHILD, files_assigned,parent_to_child_pipe, argv);
     }
 }
-void close_pipes_that_are_not_mine(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int my_index){
-    for(int i=0; i<my_index; i++){
-        if(i!=my_index){
-            for(int j=0; j<2; j++){
-                close(parent_to_child_pipe[i][j]);
-                close(child_to_parent_pipe[i][j]);
-            }
+void close_pipes_that_are_not_mine(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index){
+    for(int i=0; i< index; i++){
+        for(int j=0; j<2; j++){
+            close(parent_to_child_pipe[i][j]);
+            close(child_to_parent_pipe[i][j]);
         }
+
     }
 }
 
@@ -107,7 +108,6 @@ int main(int argc, const char *argv[]){
     resultado= fopen("salida.txt", "wr");
     int files_assigned=1;
     for(int i=0;i<child_qty;i++){ // podria llamar a este loop como una nueva funcion
-        close_pipes_that_are_not_mine(parent_to_child_pipe,child_to_parent_pipe,i);
 
         create_pipes(parent_to_child_pipe,child_to_parent_pipe,i);
 
@@ -148,32 +148,32 @@ int main(int argc, const char *argv[]){
             }
         }
     }
-close_pipes(child_to_parent_pipe, parent_to_child_pipe, child_qty);
+//close_pipes(child_to_parent_pipe, parent_to_child_pipe, child_qty);
 
-//    for (size_t i = 0; i < child_qty; i++)
-//    {
-//        if(is_fd_open(child_to_parent_pipe[i][0])){
-//            fprintf(resultado,"Child to parent, read %d\n",i);
-//            fflush(resultado);
-//            close(child_to_parent_pipe[i][0]);
-//        }
-//        if(is_fd_open(child_to_parent_pipe[i][1])){
-//            fprintf(resultado,"Child to parent, write %d\n",i);
-//            fflush(resultado);
-//            close(child_to_parent_pipe[i][1]);
-//        }
-//        if(is_fd_open(parent_to_child_pipe[i][0])){
-//            fprintf(resultado,"parent to child, read %d\n",i);
-//            fflush(resultado);
-//            close(parent_to_child_pipe[i][0]);
-//        }
-//        if(is_fd_open(parent_to_child_pipe[i][1])){
-//            fprintf(resultado,"parent to child, write %d\n",i);
-//            fflush(resultado);
-//            close(parent_to_child_pipe[i][1]);
-//
-//        }
-//    }
+    for (size_t i = 0; i < child_qty; i++)
+    {
+        if(is_fd_open(child_to_parent_pipe[i][0])){
+            fprintf(resultado,"Child to parent, read %d\n",i);
+            fflush(resultado);
+            close(child_to_parent_pipe[i][0]);
+        }
+        if(is_fd_open(child_to_parent_pipe[i][1])){
+            fprintf(resultado,"Child to parent, write %d\n",i);
+            fflush(resultado);
+            close(child_to_parent_pipe[i][1]);
+        }
+        if(is_fd_open(parent_to_child_pipe[i][0])){
+            fprintf(resultado,"parent to child, read %d\n",i);
+            fflush(resultado);
+            close(parent_to_child_pipe[i][0]);
+        }
+        if(is_fd_open(parent_to_child_pipe[i][1])){
+            fprintf(resultado,"parent to child, write %d\n",i);
+            fflush(resultado);
+            close(parent_to_child_pipe[i][1]);
+
+        }
+    }
 
 exit(EXIT_SUCCESS);
 }
