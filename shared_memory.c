@@ -1,5 +1,5 @@
 #include "shared_memory.h"
-#define SHARED_MEMORY_SIZE 1048576 // 1MB
+
 sem_t *initialize_semaphore(const char *name, int value) {
     sem_t *sem = sem_open(name, O_CREAT, 0666, value);
     if (sem == SEM_FAILED) {
@@ -34,7 +34,7 @@ void read_shared_memory(sem_t *shm_mutex_sem, sem_t *switch_sem, char *shared_me
         while (shared_memory[info_length] != '\n' && shared_memory[info_length] != '\t') {
             int i = strlen(shared_memory + info_length) + 1;
             if (i > 1) {
-                printf("%s\n", shared_memory + info_length);
+                printf("%s", shared_memory + info_length);
             }
             info_length += i;
         }

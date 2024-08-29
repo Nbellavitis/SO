@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
-
+#include "shared_memory.h"
 #define MAX_CHILD_QTY 5
 #define INITIAL_FILES_PER_CHILD 2
 #define MAX_MD5 32
@@ -11,8 +11,8 @@
 #define MIN(x,y) (x<y) ? x:y
 #define MAX(x,y) (x>y) ? x:y 
 char path[100];
-void close_pipes_that_are_not_mine(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index);
 void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * readfds,int child_qty);
+void start_shared_memory(int *shm_fd, char **shared_memory, sem_t **shm_sem,sem_t **switch_sem, int *vision_opened);
 FILE * resultado;
 
 int is_fd_open(int fd) {
@@ -27,14 +27,6 @@ int is_fd_open(int fd) {
     return 1;  // File descriptor is open
 }
 
-void close_pipes(int child_to_parent_pipe[][2], int parent_to_child_pipe[][2], int child_qty ){
-    for (size_t i = 0; i < child_qty; i++)
-    {
-        close(child_to_parent_pipe[i][0]);
-        close(parent_to_child_pipe[i][1]);
-    }
-}
-
 
 
 
@@ -46,20 +38,8 @@ void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * readf
         FD_SET(child_to_parent_pipe[i][flag], readfds);
     }
 }
-void handle_pipes_child(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index){
-    close(parent_to_child_pipe[index][1]);
-    close(child_to_parent_pipe[index][0]);
 
-    dup2(parent_to_child_pipe[index][0], STDIN_FILENO);
-    close(parent_to_child_pipe[index][0]);
 
-    dup2(child_to_parent_pipe[index][1], STDOUT_FILENO);
-    close(child_to_parent_pipe[index][1]);
-}
-void handle_pipes_parent(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index){
-    close(parent_to_child_pipe[index][0]);
-    close(child_to_parent_pipe[index][1]);
-}
 
 void create_child_process(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index, int * child_pid){
     if((child_pid[index]=fork())== -1){
@@ -75,12 +55,7 @@ void create_child_process(int parent_to_child_pipe[][2], int child_to_parent_pip
         exit(EXIT_FAILURE);
     }
 }
-void create_pipes(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index){
-    if(pipe(parent_to_child_pipe[index]) == -1 || pipe(child_to_parent_pipe[index]) == -1){
-        perror("pipe");
-        exit(EXIT_FAILURE);
-    }
-}
+
 
 void send_to_process(int child_index, int quantity, int * files_assigned,int total_files_to_process, int parent_to_child_pipe[][2], const char *argv[]){
     for(int i=0;i<quantity && *files_assigned <= total_files_to_process;i++) {
@@ -94,6 +69,44 @@ void send_initial_files(int child_qty, int total_files_to_process, int * files_a
     }
 }
 
+ void start_shared_memory(int *shm_fd, char **shared_memory, sem_t **shm_sem,sem_t **switch_sem, int *vision_opened){
+    *shm_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+    if (*shm_fd == -1) {
+        perror("shm_open");
+        exit(EXIT_FAILURE);
+    }
+
+    *shared_memory = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, *shm_fd, 0);
+    if (*shared_memory == MAP_FAILED) {
+        perror("mmap");
+        exit(EXIT_FAILURE);
+    }
+    
+    sleep(2);
+
+    *shm_sem = sem_open(SHM_SEM_NAME, 1);
+    if (*shm_sem != SEM_FAILED) {
+        (*vision_opened)++;
+    }
+
+    *switch_sem = sem_open(SWITCH_SEM_NAME, 0);
+    if (*switch_sem != SEM_FAILED) {
+        (*vision_opened)++;
+    }
+ 
+
+ if (*vision_opened == 0) {
+        printf("No view detected - No semaphore initialization\n");
+    }
+
+   if (ftruncate(*shm_fd, SHARED_MEMORY_SIZE) == -1) {
+    perror("ftruncate");
+    exit(EXIT_FAILURE);
+}
+
+ }
+
+
 int main(int argc, const char *argv[]){
     int child_qty=MIN(MAX_CHILD_QTY,argc-1);
     int parent_to_child_pipe[child_qty][2];
@@ -101,6 +114,19 @@ int main(int argc, const char *argv[]){
     int  child_pid[child_qty];
     resultado= fopen("salida.txt", "wr");
     int files_assigned=1;
+    if (!isatty(STDOUT_FILENO)) {
+        write(STDOUT_FILENO, SHARED_MEMORY_NAME,strlen(SHARED_MEMORY_NAME)+1);
+       
+    } else {
+        printf("%s\n", SHARED_MEMORY_NAME);
+    }
+    int view_status = 0;
+    int shm_fd;
+    char *shared_memory;
+    sem_t *shm_sem;
+    sem_t *switch_sem;
+    start_shared_memory(&shm_fd, &shared_memory, &shm_sem,&switch_sem , &view_status);
+
     for(int i=0;i<child_qty;i++){ // podria llamar a este loop como una nueva funcion
 
         create_pipes(parent_to_child_pipe,child_to_parent_pipe,i);
@@ -114,34 +140,66 @@ int main(int argc, const char *argv[]){
     send_initial_files(child_qty,total_files_to_process,&files_assigned, parent_to_child_pipe, argv);
 
     fd_set readfds,writefds;
-    int max_read = -1;
-    int max_write=-1;
+   
     int file_index=0;
-    while(file_index < total_files_to_process){ // hay que corregir esto --creo que ahi esta? (feo igual )
-        FD_ZERO(&readfds);FD_ZERO(&writefds);
-        set_fd(child_to_parent_pipe,0,&max_read,&readfds,child_qty);
-        set_fd(parent_to_child_pipe,1,&max_write,&writefds,child_qty);
-         select(max_read+1,&readfds,NULL,NULL,NULL);
-         select(max_write+1,NULL,&writefds,NULL,NULL);
-        for(int i=0;i<child_qty;i++){
-            if (FD_ISSET(child_to_parent_pipe[i][0], &readfds)) {
-                int bytes_read = pipe_read(child_to_parent_pipe[i][0], path);
-                if (bytes_read < 0) {
-                    perror("read");
-                    exit(EXIT_FAILURE);
-                } else {
-                    fprintf(resultado, "ID:%d MD5:%s\n", child_pid[i], path);
-                    fflush(resultado);
-                    if (files_assigned < argc && FD_ISSET(parent_to_child_pipe[i][1], &writefds)) {
-                        send_to_process(i, 1, &files_assigned,total_files_to_process, parent_to_child_pipe, argv);
-                    }
-                    file_index++;
+    int info_length = strlen("ID:%d MD5:%s\n") + MAX_MD5 + MAX_PATH ;
+
+while (file_index < total_files_to_process) {
+    int max_read=-1;
+    int max_write=-1;
+    FD_ZERO(&readfds);
+    FD_ZERO(&writefds);
+    set_fd(child_to_parent_pipe, 0, &max_read, &readfds, child_qty);
+    set_fd(parent_to_child_pipe, 1, &max_write, &writefds, child_qty);
+
+    if (select(max_read + 1, &readfds, NULL, NULL, NULL) == -1) {
+        perror("select read");
+        exit(EXIT_FAILURE);
+    }
+
+    if (select(max_write + 1, NULL, &writefds, NULL, NULL) == -1) {
+        perror("select write");
+        exit(EXIT_FAILURE);
+    }
+   
+     sem_wait(shm_sem);
+    for (int i = 0; i < child_qty; i++) {
+        
+   
+        if (FD_ISSET(child_to_parent_pipe[i][0], &readfds)) {
+            int bytes_read = pipe_read(child_to_parent_pipe[i][0], path);
+            if (bytes_read < 0) {
+                perror("read");
+                exit(EXIT_FAILURE);
+            } else {
+                
+                fprintf(resultado, "ID:%d MD5:%s\n", child_pid[i], path);
+                fflush(resultado);
+                snprintf(shared_memory + file_index * info_length, info_length, "ID:%d MD5:%s\n", child_pid[i], path);
+                sem_post(switch_sem);
+                sem_post(shm_sem); 
+                if (files_assigned < argc && FD_ISSET(parent_to_child_pipe[i][1], &writefds)) {
+                    send_to_process(i, 1, &files_assigned, total_files_to_process, parent_to_child_pipe, argv);
                 }
+                file_index++;
+               
             }
         }
     }
-close_pipes(child_to_parent_pipe, parent_to_child_pipe, child_qty);
+   
+}
 
+    sem_wait(shm_sem);
+    sprintf(shared_memory + file_index * info_length, "\t");
+    sem_post(shm_sem);
+    sem_post(switch_sem);
+close_pipes(child_to_parent_pipe, parent_to_child_pipe, child_qty);
+sem_close(shm_sem);
+sem_unlink(SHM_SEM_NAME);
+sem_close(switch_sem);
+sem_unlink(SWITCH_SEM_NAME);
+close(shm_fd);
+shm_unlink(SHARED_MEMORY_NAME);
 fclose(resultado);
 exit(EXIT_SUCCESS);
 }
