@@ -25,24 +25,22 @@ char *create_shared_memory(const char * sh_mem_name, int *shm_fd){
 }
 
 void read_shared_memory(sem_t *shm_mutex_sem, sem_t *switch_sem, char *shared_memory) {
-    int info_length = 0;
+    int i = 0;
 
     while (1) {
         sem_wait(switch_sem);
         
         sem_wait(shm_mutex_sem);
-        while (shared_memory[info_length] != '\n' && shared_memory[info_length] != '\t') {
-            int i = strlen(shared_memory + info_length) + 1;
-            if (i > 1) {
-                printf("%s", shared_memory + info_length);
-            }
-            info_length += i;
+        while (shared_memory[i] != '\n' && shared_memory[i] != '\t') {
+            printf("%c",shared_memory[i++]);
         }
 
-        if (shared_memory[info_length] == '\t') {
+        if (shared_memory[i] == '\t') {
             sem_post(shm_mutex_sem);
             break;
+            
         }
+        printf("%c",shared_memory[i++]);
         sem_post(shm_mutex_sem);
     }
 }

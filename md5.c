@@ -177,7 +177,7 @@ while (file_index < total_files_to_process) {
                 
                 fprintf(resultado, "ID:%d MD5:%s\n", child_pid[i], path);
                 fflush(resultado);
-                snprintf(shared_memory + file_index * info_length, info_length, "ID:%d MD5:%s\n", child_pid[i], path);
+                sprintf(shared_memory + file_index * info_length, "ID:%d MD5:%s\n", child_pid[i], path);
                 if (view_status == 2) {
                 sem_post(switch_sem);
                 sem_post(shm_sem); 
