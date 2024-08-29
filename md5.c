@@ -162,7 +162,9 @@ while (file_index < total_files_to_process) {
         exit(EXIT_FAILURE);
     }
    
-     sem_wait(shm_sem);
+     if (view_status == 2) {
+            sem_wait(shm_sem);
+        }
     for (int i = 0; i < child_qty; i++) {
         
    
@@ -176,8 +178,10 @@ while (file_index < total_files_to_process) {
                 fprintf(resultado, "ID:%d MD5:%s\n", child_pid[i], path);
                 fflush(resultado);
                 snprintf(shared_memory + file_index * info_length, info_length, "ID:%d MD5:%s\n", child_pid[i], path);
+                if (view_status == 2) {
                 sem_post(switch_sem);
                 sem_post(shm_sem); 
+                }
                 if (files_assigned < argc && FD_ISSET(parent_to_child_pipe[i][1], &writefds)) {
                     send_to_process(i, 1, &files_assigned, total_files_to_process, parent_to_child_pipe, argv);
                 }
@@ -188,11 +192,13 @@ while (file_index < total_files_to_process) {
     }
    
 }
-
+    if (view_status == 2) {
     sem_wait(shm_sem);
-    sprintf(shared_memory + file_index * info_length, "\t");
+     sprintf(shared_memory + file_index * info_length, "\t");
     sem_post(shm_sem);
     sem_post(switch_sem);
+    }
+   
 close_pipes(child_to_parent_pipe, parent_to_child_pipe, child_qty);
 sem_close(shm_sem);
 sem_unlink(SHM_SEM_NAME);
