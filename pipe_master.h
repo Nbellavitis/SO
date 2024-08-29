@@ -4,7 +4,6 @@
 #include <unistd.h>    // For close(), dup2(), read()
 #include <sys/wait.h>  // For wait()
 #include <sys/select.h> // For select()
-#define SHARED_MEMORY_NAME
 
 // Function to read from a pipe until a newline or null character is encountered
 int pipe_read(int fd, char *buff);
@@ -19,5 +18,6 @@ void handle_pipes_parent(int parent_to_child_pipe[][2], int child_to_parent_pipe
 void close_pipes(int child_to_parent_pipe[][2], int parent_to_child_pipe[][2], int child_qty);
 
 void create_pipes(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index);
+
 
 #endif // PIPE_MASTER_H
