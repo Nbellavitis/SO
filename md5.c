@@ -1,3 +1,5 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "commons.h"
 #include "pipe_master.h"
 #include <fcntl.h>
@@ -10,7 +12,7 @@
 #define MAX_PATH 128
 #define MIN(x,y) (x<y) ? x:y
 #define MAX(x,y) (x>y) ? x:y 
-char path[100];
+char path[MAX_PATH+MAX_MD5];
 void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * readfds,int child_qty);
 void start_shared_memory(int *shm_fd, char **shared_memory, sem_t **shm_sem,sem_t **switch_sem, int *vision_opened);
 FILE * resultado;
@@ -48,7 +50,7 @@ void create_child_process(int parent_to_child_pipe[][2], int child_to_parent_pip
     }else if( child_pid[index]== 0) {
 
         handle_pipes_child(parent_to_child_pipe, child_to_parent_pipe, index);
-
+        close_brothers_pipes(parent_to_child_pipe,child_to_parent_pipe,index);
 
         char *args[] = {"slave", NULL};
         execve(args[0], args, NULL);
@@ -95,7 +97,7 @@ void send_initial_files(int child_qty, int total_files_to_process, int * files_a
     }
  
 
- if (*vision_opened == 0) {
+ if (*vision_opened <= 1 ) {
         printf("No view detected - No semaphore initialization\n");
     }
 
@@ -112,7 +114,7 @@ int main(int argc, const char *argv[]){
     int parent_to_child_pipe[child_qty][2];
     int child_to_parent_pipe[child_qty][2];
     int  child_pid[child_qty];
-    resultado= fopen("salida.txt", "wr");
+    resultado= fopen("salida.txt", "w");
     int files_assigned=1;
     if (!isatty(STDOUT_FILENO)) {
         write(STDOUT_FILENO, SHARED_MEMORY_NAME,strlen(SHARED_MEMORY_NAME)+1);
@@ -139,35 +141,26 @@ int main(int argc, const char *argv[]){
  int total_files_to_process=argc-1;
     send_initial_files(child_qty,total_files_to_process,&files_assigned, parent_to_child_pipe, argv);
 
-    fd_set readfds,writefds;
+    fd_set readfds;
    
     int file_index=0;
     int info_length = strlen("ID:%d MD5:%s\n") + MAX_MD5 + MAX_PATH ;
 
 while (file_index < total_files_to_process) {
     int max_read=-1;
-    int max_write=-1;
     FD_ZERO(&readfds);
-    FD_ZERO(&writefds);
     set_fd(child_to_parent_pipe, 0, &max_read, &readfds, child_qty);
-    set_fd(parent_to_child_pipe, 1, &max_write, &writefds, child_qty);
 
-    if (select(max_read + 1, &readfds, NULL, NULL, NULL) == -1) {
+    if (select(max_read+ 1, &readfds, NULL, NULL, NULL) == -1) {
         perror("select read");
         exit(EXIT_FAILURE);
     }
 
-    if (select(max_write + 1, NULL, &writefds, NULL, NULL) == -1) {
-        perror("select write");
-        exit(EXIT_FAILURE);
-    }
    
      if (view_status == 2) {
             sem_wait(shm_sem);
         }
     for (int i = 0; i < child_qty; i++) {
-        
-   
         if (FD_ISSET(child_to_parent_pipe[i][0], &readfds)) {
             int bytes_read = pipe_read(child_to_parent_pipe[i][0], path);
             if (bytes_read < 0) {
@@ -182,7 +175,7 @@ while (file_index < total_files_to_process) {
                 sem_post(switch_sem);
                 sem_post(shm_sem); 
                 }
-                if (files_assigned < argc && FD_ISSET(parent_to_child_pipe[i][1], &writefds)) {
+                if (files_assigned < argc ) {
                     send_to_process(i, 1, &files_assigned, total_files_to_process, parent_to_child_pipe, argv);
                 }
                 file_index++;
@@ -197,12 +190,12 @@ while (file_index < total_files_to_process) {
      sprintf(shared_memory + file_index * info_length, "\t");
     sem_post(shm_sem);
     sem_post(switch_sem);
+    sem_close(shm_sem);
+    sem_close(switch_sem);
     }
    
 close_pipes(child_to_parent_pipe, parent_to_child_pipe, child_qty);
-sem_close(shm_sem);
 sem_unlink(SHM_SEM_NAME);
-sem_close(switch_sem);
 sem_unlink(SWITCH_SEM_NAME);
 close(shm_fd);
 shm_unlink(SHARED_MEMORY_NAME);
