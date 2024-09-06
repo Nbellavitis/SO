@@ -110,18 +110,18 @@ void send_initial_files(int child_qty, int total_files_to_process, int * files_a
 
 
 int main(int argc, const char *argv[]){
+
+    if (argc == 1) {
+        printf( "Usage: %s <file1> <file2>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
     int child_qty=MIN(MAX_CHILD_QTY,argc-1);
     int parent_to_child_pipe[child_qty][2];
     int child_to_parent_pipe[child_qty][2];
     int  child_pid[child_qty];
     resultado= fopen("salida.txt", "w");
     int files_assigned=1;
-    if (!isatty(STDOUT_FILENO)) {
-        write(STDOUT_FILENO, SHARED_MEMORY_NAME,strlen(SHARED_MEMORY_NAME)+1);
-       
-    } else {
-        printf("%s\n", SHARED_MEMORY_NAME);
-    }
+    printf("%s\n", SHARED_MEMORY_NAME);
     int view_status = 0;
     int shm_fd;
     char *shared_memory;
@@ -187,7 +187,7 @@ while (file_index < total_files_to_process) {
 }
     if (view_status == 2) {
     sem_wait(shm_sem);
-     sprintf(shared_memory + file_index * info_length, "\t");
+    sprintf(shared_memory + file_index * info_length, "\t");
     sem_post(shm_sem);
     sem_post(switch_sem);
     sem_close(shm_sem);
