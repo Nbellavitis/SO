@@ -6,7 +6,7 @@
 #define MAX_PATH 128
 int pipe_read(int fd, char *buff) {
     int bytes_read = read(fd, buff, MAX_PATH);
-    buff[bytes_read-1] = '\0';
+    buff[--bytes_read] = '\0';
     return bytes_read;
 }
 
