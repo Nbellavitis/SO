@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include "shared_memory.h"
 #define MAX_CHILD_QTY 5
-#define INITIAL_FILES_PER_CHILD 2
+//#define INITIAL_FILES_PER_CHILD 2
 #define MAX_MD5 32
 #define MAX_PATH 128
 #define MIN(x,y) (x<y) ? x:y
@@ -65,9 +65,9 @@ void send_to_process(int child_index, int quantity, int * files_assigned,int tot
         (*files_assigned)++;
     }
 }
-void send_initial_files(int child_qty, int total_files_to_process, int * files_assigned , int parent_to_child_pipe[][2], const char *argv[]){
+void send_initial_files(int child_qty, int total_files_to_process, int * files_assigned , int parent_to_child_pipe[][2], const char *argv[], int files_per_child){
     for(int child_index=0; child_index<child_qty && *files_assigned <= total_files_to_process;child_index++){
-        send_to_process(child_index, MIN(total_files_to_process,INITIAL_FILES_PER_CHILD), files_assigned,total_files_to_process,parent_to_child_pipe, argv);
+        send_to_process(child_index, MIN(total_files_to_process,files_per_child), files_assigned,total_files_to_process,parent_to_child_pipe, argv);
     }
 }
 
@@ -97,7 +97,7 @@ void send_initial_files(int child_qty, int total_files_to_process, int * files_a
     }
  
 
- if (*vision_opened <= 1 ) {
+ if (*vision_opened <=1 ) {
         printf("No view detected - No semaphore initialization\n");
     }
 
@@ -116,12 +116,18 @@ int main(int argc, const char *argv[]){
         exit(EXIT_FAILURE);
     }
     int child_qty=MIN(MAX_CHILD_QTY,argc-1);
+    int filer_per_child = MAX(1, (argc-1)/(child_qty*10));
     int parent_to_child_pipe[child_qty][2];
     int child_to_parent_pipe[child_qty][2];
     int  child_pid[child_qty];
     resultado= fopen("salida.txt", "w");
     int files_assigned=1;
-    printf("%s\n", SHARED_MEMORY_NAME);
+    if (!isatty(STDOUT_FILENO)) {
+         write(STDOUT_FILENO, SHARED_MEMORY_NAME,strlen(SHARED_MEMORY_NAME)+1);
+
+     } else {
+         printf("%s\n", SHARED_MEMORY_NAME);
+     }
     int view_status = 0;
     int shm_fd;
     char *shared_memory;
@@ -139,7 +145,7 @@ int main(int argc, const char *argv[]){
     }
 
  int total_files_to_process=argc-1;
-    send_initial_files(child_qty,total_files_to_process,&files_assigned, parent_to_child_pipe, argv);
+    send_initial_files(child_qty,total_files_to_process,&files_assigned, parent_to_child_pipe, argv, filer_per_child);
 
     fd_set readfds;
    

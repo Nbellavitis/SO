@@ -2,6 +2,7 @@
 #include <sys/wait.h>
 #include "commons.h"
 #include "shared_memory.h"
+
 int main (int argc, const char * argv[]) {
     sem_unlink(SWITCH_SEM_NAME);
     sem_unlink(SHM_SEM_NAME);
