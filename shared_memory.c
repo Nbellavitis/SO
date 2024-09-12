@@ -44,3 +44,39 @@ void read_shared_memory(sem_t *shm_mutex_sem, sem_t *switch_sem, char *shared_me
         sem_post(shm_mutex_sem);
     }
 }
+
+void start_shared_memory(int *shm_fd, char **shared_memory, sem_t **shm_sem,sem_t **switch_sem, int *vision_opened){
+    *shm_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+    if (*shm_fd == -1) {
+        perror("shm_open");
+        exit(EXIT_FAILURE);
+    }
+
+    *shared_memory = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, *shm_fd, 0);
+    if (*shared_memory == MAP_FAILED) {
+        perror("mmap");
+        exit(EXIT_FAILURE);
+    }
+    
+    sleep(2);
+
+    *shm_sem = sem_open(SHM_SEM_NAME, 1);
+    if (*shm_sem != SEM_FAILED) {
+        (*vision_opened)++;
+    }
+
+    *switch_sem = sem_open(SWITCH_SEM_NAME, 0);
+    if (*switch_sem != SEM_FAILED) {
+        (*vision_opened)++;
+    }
+ 
+
+ if (*vision_opened <=1 ) {
+        printf("No view detected - No semaphore initialization\n");
+    }
+
+   if (ftruncate(*shm_fd, SHARED_MEMORY_SIZE) == -1) {
+    perror("ftruncate");
+    exit(EXIT_FAILURE);
+}
+}

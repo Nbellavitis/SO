@@ -1,6 +1,7 @@
 #ifndef _SHM
 #define _SHM
 #include "pipe_master.h"
+#include "md5.h"
 #include <stdio.h>       // Standard I/O functions
 #include <stdlib.h>      // Standard library functions (e.g., exit)
 #include <string.h>      // String manipulation functions
@@ -19,4 +20,9 @@ sem_t *initialize_semaphore(const char *name, int value);
 char *create_shared_memory(const char * sh_mem_name, int *shm_fd);
 
 void read_shared_memory(sem_t *shm_mutex_sem, sem_t *switch_sem, char *shared_memory);
+
+void start_shared_memory(int *shm_fd, char **shared_memory, sem_t **shm_sem,sem_t **switch_sem, int *vision_opened);
+
+
+
 #endif
