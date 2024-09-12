@@ -5,9 +5,9 @@ La idea del proyecto fue mostrar el uso de IPC, en donde distribuimos archivos p
 Contenidos
 -----------------
 
- -requerimientos
- -creacion
- -uso
+ *requerimientos
+ *creacion
+ *uso
 
 
 requerimientos
@@ -41,7 +41,8 @@ o podemos poner un asterisco para todos los archivos:
 ./md5 * | ./view
 
 ```
-Para usar en 2 terminales distintas
+Para usar en 2 terminales distintas hacemos lo siguiente:
+
 En la terminal 1 corremos:
 ```sh
 ./md5 file1 file2 file3 ...
