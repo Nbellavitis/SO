@@ -1,56 +1,76 @@
-SO
-======
-La idea del proyecto fue mostrar el uso de IPC, en donde distribuimos archivos para calcular el md5 de multiples procesos. Luego tenemos el viewen donde junto a la memoria compartida se nos permite ver lo que se logro con los md5.
+# Proyecto de Cálculo de MD5 Distribuido con IPC
 
-Contenidos
------------------
+## Descripción
+Este proyecto muestra el uso de la Comunicación entre Procesos (IPC) para calcular el **hash MD5** de múltiples archivos de manera distribuida. También permite visualizar los resultados utilizando memoria compartida.
 
- * requerimientos
- * creacion
- * uso
+## Contenidos
+1. [Requerimientos](#requerimientos)
+2. [Creación](#creacion)
+3. [Uso](#uso)
 
+---
 
-requerimientos
-------------
+## Requerimientos
 
-El proyecto necesita de:
- * Docker
- * Imagen provista por la catedra
+El proyecto requiere de:
 
-Los cuales se pueden instalar siguiendo la guia de la catedra provisto en el siguiente link:
-https://github.com/alejoaquili/ITBA-72.11-SO/blob/main/docker/README.md/
+- **Docker**: Para la gestión de contenedores.
+- **Imagen provista por la cátedra**: Para las configuraciones específicas.
 
-Creacion
------
-Para generar la compilacion total del trabajo, y poder usar tanto ./md5 como ./view se debe correr el make all dentro del container
-```s
+Puedes seguir las instrucciones de instalación en el siguiente enlace:
+
+[Guía de instalación Docker e imagen](https://github.com/alejoaquili/ITBA-72.11-SO/blob/main/docker/README.md/)
+
+---
+
+## Creación
+
+Para compilar todo el proyecto s `./md5` y `./view`, se debe correr el siguiente comando dentro del contenedor Docker:
+
+```bash
 make all
 ```
+## Uso
 
-Uso
------
-Se puede usar tanto desde el pipe o en 2 terminales.
+El proyecto se puede ejecutar de dos maneras: **usando pipes** o **en dos terminales separadas**.
 
-Usando lo con el pipe podemos poner un archivo tras otro:
-```sh
-./md5 file1 file2 file3 ... | ./view
+### 1. Uso con pipes
 
+Este método permite procesar varios archivos en una sola línea:
+
+```bash
+./md5 archivo1 arcivo2 archivo3 ... | ./view
 ```
-o podemos poner un asterisco para todos los archivos:
-```sh
+O puedes procesar todos los archivos en el directorio con:
+
+```bash
 ./md5 * | ./view
+```
 
-```
-Para usar en 2 terminales distintas hacemos lo siguiente:
+### 2. Uso en terminales separadas
 
-En la terminal 1 corremos:
-```sh
-./md5 file1 file2 file3 ...
-```
-En la terminal 2 corremos:
-```sh
-./view shared_memory
-```
-(tener en cuenta que esto se debe hacer rapido, mientras este corriendo el md5. Ademas no olvidarse que se debe estar corriendo dentro del container)
+Para usar dos terminales distintas, sigue estos pasos:
+
+- En la **terminal 1**, corre el comando `./md5` para calcular los hashes MD5 de los archivos:
+
+  ```bash
+  ./md5 archivo1 archivo2 archivo3 ...
+  ```
+- En la terminal 2, ejecuta el visor ./view para ver los resultados almacenados en la memoria compartida:
+- 
+ ```bash
+  ./view shared_memory
+  ```
+
+##  Aviso Importante
+
+1. **Ejecución en Docker**:  
+   Asegúrate de que todos los comandos (`./md5` y `./view`) se ejecuten dentro del contenedor Docker provisto por la cátedra. De lo contrario, no deberia funcionar correctamente.
+
+2. **Tiempo de Ejecución**:  
+   Es importante ejecutar `./view` mientras `./md5` aún está procesando los archivos. Si `./md5` termina antes de que se inicie `./view`, los datos en la memoria compartida podrían no estar disponibles para su visualización.
+
+3. **Docker Make**:  
+   No olvidase  decompilar el proyecto dentro del contenedor usando el comando `make all` antes de intentar ejecutar cualquier proceso.
 
 
