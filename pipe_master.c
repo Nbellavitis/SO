@@ -3,9 +3,9 @@
 #include "commons.h"
 #include "pipe_master.h"
 
-#define MAX_PATH 128
+#define MAX_SIZE 200
 int pipe_read(int fd, char *buff) {
-    int bytes_read = read(fd, buff, MAX_PATH);
+    int bytes_read = read(fd, buff, MAX_SIZE);
     buff[--bytes_read] = '\0';
     return bytes_read;
 }
