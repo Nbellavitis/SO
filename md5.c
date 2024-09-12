@@ -13,7 +13,7 @@
 #define MIN(x,y) (x<y) ? x:y
 #define MAX(x,y) (x>y) ? x:y 
 char path[MAX_PATH+MAX_MD5];
-void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * readfds,int child_qty);
+void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * read_fds,int child_qty);
 void start_shared_memory(int *shm_fd, char **shared_memory, sem_t **shm_sem,sem_t **switch_sem, int *vision_opened);
 FILE * resultado;
 
@@ -32,12 +32,12 @@ int is_fd_open(int fd) {
 
 
 
-void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * readfds,int child_qty){
+void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * read_fds,int child_qty){
      for (int i = 0; i < child_qty; i++) {
         if (child_to_parent_pipe[i][flag] > *max_fd) {
             *max_fd = child_to_parent_pipe[i][flag];
         }
-        FD_SET(child_to_parent_pipe[i][flag], readfds);
+        FD_SET(child_to_parent_pipe[i][flag], read_fds);
     }
 }
 
@@ -147,17 +147,17 @@ int main(int argc, const char *argv[]){
  int total_files_to_process=argc-1;
     send_initial_files(child_qty,total_files_to_process,&files_assigned, parent_to_child_pipe, argv, filer_per_child);
 
-    fd_set readfds;
+    fd_set read_fds;
    
     int file_index=0;
     int info_length = strlen("ID:%d MD5:%s\n") + MAX_MD5 + MAX_PATH ;
 
 while (file_index < total_files_to_process) {
     int max_read=-1;
-    FD_ZERO(&readfds);
-    set_fd(child_to_parent_pipe, 0, &max_read, &readfds, child_qty);
+    FD_ZERO(&read_fds);
+    set_fd(child_to_parent_pipe, 0, &max_read, &read_fds, child_qty);
 
-    if (select(max_read+ 1, &readfds, NULL, NULL, NULL) == -1) {
+    if (select(max_read+ 1, &read_fds, NULL, NULL, NULL) == -1) {
         perror("select read");
         exit(EXIT_FAILURE);
     }
@@ -167,7 +167,7 @@ while (file_index < total_files_to_process) {
             sem_wait(shm_sem);
         }
     for (int i = 0; i < child_qty; i++) {
-        if (FD_ISSET(child_to_parent_pipe[i][0], &readfds)) {
+        if (FD_ISSET(child_to_parent_pipe[i][0], &read_fds)) {
             int bytes_read = pipe_read(child_to_parent_pipe[i][0], path);
             if (bytes_read < 0) {
                 perror("read");
