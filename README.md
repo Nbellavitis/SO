@@ -5,9 +5,9 @@ La idea del proyecto fue mostrar el uso de IPC, en donde distribuimos archivos p
 Contenidos
 -----------------
 
- *requerimientos
- *creacion
- *uso
+ * requerimientos
+ * creacion
+ * uso
 
 
 requerimientos
