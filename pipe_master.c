@@ -11,7 +11,6 @@ int pipe_read(int fd, char *buff) {
 }
 
 
-
 void handle_pipes_child(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index) {
     close(parent_to_child_pipe[index][1]);
     close(child_to_parent_pipe[index][0]);

@@ -190,12 +190,15 @@ int main(int argc, const char *argv[]) {
     if (view_status == 1) {
         sprintf(ipc.shared_memory + file_index * info_length, "\t");
         sem_post(ipc.switch_sem);
-        sem_close(ipc.switch_sem);
     }
 
     close_pipes(ipc.child_to_parent_pipe, ipc.parent_to_child_pipe, params.child_qty);
-    sem_unlink(SHM_SEM_NAME);
-    sem_unlink(SWITCH_SEM_NAME);
+
+    if(view_status == 1) {
+        sem_unlink(SWITCH_SEM_NAME);
+        sem_close(ipc.switch_sem);
+    }
+
     close(ipc.shm_fd);
     shm_unlink(SHARED_MEMORY_NAME);
     fclose(resultado);
