@@ -1,10 +1,12 @@
-#include "commons.h"
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "pipe_master.h"
+#include "commons.h"
 #define MAX_MD5 32
 #define MAX_PATH 128
 #define OFFSET 3
 int main (int argc, const char * argv[]){
-
+    setvbuf(stdout, NULL, _IONBF, 0);
     char path[MAX_PATH] ;
     char *md5_cmd="md5sum %s";
     

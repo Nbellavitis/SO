@@ -7,19 +7,40 @@
 #include <stdio.h>
 #include "shared_memory.h"
 #define MAX_CHILD_QTY 5
-//#define INITIAL_FILES_PER_CHILD 2
 #define MAX_MD5 32
 #define MAX_PATH 128
 #define MIN(x,y) (x<y) ? x:y
-#define MAX(x,y) (x>y) ? x:y 
+#define MAX(x,y) (x>y) ? x:y
 char path[MAX_PATH+MAX_MD5];
-void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * read_fds,int child_qty);
+FILE * resultado;
 
+// Estructura para los recursos de IPC
+typedef struct {
+    int parent_to_child_pipe[MAX_CHILD_QTY][2];
+    int child_to_parent_pipe[MAX_CHILD_QTY][2];
+    int shm_fd;
+    char *shared_memory;
+    sem_t *switch_sem;
+} IPCResources;
+
+// Estructura para parámetros del programa
+typedef struct {
+    int child_qty;
+    int files_assigned;
+    int total_files_to_process;
+    int child_pid[MAX_CHILD_QTY];
+} ProgramParams;
+
+void set_fd(IPCResources *ipc, int flag, int *max_fd, fd_set *read_fds, ProgramParams *params);
+void create_child_process(IPCResources *ipc, ProgramParams *params, int index);
+void send_to_process(int child_index, int quantity, int *files_assigned, int total_files_to_process, IPCResources *ipc, const char *argv[]);
+void send_initial_files(ProgramParams *params, IPCResources *ipc, const char *argv[], int files_per_child);
+void start_shared_memory(IPCResources *ipc, int *vision_opened);
 int is_fd_open(int fd) {
     if (fcntl(fd, F_GETFD) == -1) {
         if (errno == EBADF) {
             return 0;  // File descriptor is not open
-        }else{
+        } else {
             perror("closed");
             exit(EXIT_FAILURE);
         }
@@ -27,164 +48,148 @@ int is_fd_open(int fd) {
     return 1;  // File descriptor is open
 }
 
-
-
-
-void set_fd(int child_to_parent_pipe[][2],int flag, int * max_fd, fd_set * read_fds,int child_qty){
-     for (int i = 0; i < child_qty; i++) {
-        if (child_to_parent_pipe[i][flag] > *max_fd) {
-            *max_fd = child_to_parent_pipe[i][flag];
+void set_fd(IPCResources *ipc, int flag, int *max_fd, fd_set *read_fds, ProgramParams *params){
+    for (int i = 0; i < params->child_qty; i++) {
+        if (ipc->child_to_parent_pipe[i][flag] > *max_fd) {
+            *max_fd = ipc->child_to_parent_pipe[i][flag];
         }
-        FD_SET(child_to_parent_pipe[i][flag], read_fds);
+        FD_SET(ipc->child_to_parent_pipe[i][flag], read_fds);
     }
 }
 
-
-
-void create_child_process(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index, int * child_pid){
-    if((child_pid[index]=fork())== -1){
+void create_child_process(IPCResources *ipc, ProgramParams *params, int index){
+    if((params->child_pid[index] = fork()) == -1){
         perror("fork");
         exit(EXIT_FAILURE);
-    }else if( child_pid[index]== 0) {
-
-        handle_pipes_child(parent_to_child_pipe, child_to_parent_pipe, index);
-        close_brothers_pipes(parent_to_child_pipe,child_to_parent_pipe,index);
-
+    } else if(params->child_pid[index] == 0) {
+        handle_pipes_child(ipc->parent_to_child_pipe, ipc->child_to_parent_pipe, index);
+        close_brothers_pipes(ipc->parent_to_child_pipe, ipc->child_to_parent_pipe, index);
         char *args[] = {"slave", NULL};
         execve(args[0], args, NULL);
         exit(EXIT_FAILURE);
     }
 }
 
-
-void send_to_process(int child_index, int quantity, int * files_assigned,int total_files_to_process, int parent_to_child_pipe[][2], const char *argv[]){
-    for(int i=0;i<quantity && *files_assigned <= total_files_to_process;i++) {
-        write(parent_to_child_pipe[child_index][1], argv[*files_assigned], strlen(argv[*files_assigned]) + 1); // revisar argv
+void send_to_process(int child_index, int quantity, int *files_assigned, int total_files_to_process, IPCResources *ipc, const char *argv[]){
+    for(int i = 0; i < quantity && *files_assigned <= total_files_to_process; i++) {
+        write(ipc->parent_to_child_pipe[child_index][1], argv[*files_assigned], strlen(argv[*files_assigned]) + 1);
         (*files_assigned)++;
     }
 }
-void send_initial_files(int child_qty, int total_files_to_process, int * files_assigned , int parent_to_child_pipe[][2], const char *argv[], int files_per_child){
-    for(int child_index=0; child_index<child_qty && *files_assigned <= total_files_to_process;child_index++){
-        send_to_process(child_index, MIN(total_files_to_process,files_per_child), files_assigned,total_files_to_process,parent_to_child_pipe, argv);
+
+void send_initial_files(ProgramParams *params, IPCResources *ipc, const char *argv[], int files_per_child){
+    for(int child_index = 0; child_index < params->child_qty && params->files_assigned <= params->total_files_to_process; child_index++){
+        send_to_process(child_index, MIN(params->total_files_to_process, files_per_child), &params->files_assigned, params->total_files_to_process, ipc, argv);
     }
 }
 
-typedef struct {
-    FILE * resultado;
-    int files_per_child;
-    int files_assigned;
-    int total_files_to_process;
-    int file_index;
-    fd_set read_fds;
-} FileInfo;
+void start_shared_memory(IPCResources *ipc, int *vision_opened){
+    ipc->shm_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
 
-FileInfo * initialize_file_info(int argc, int child_qty){
-    FileInfo * file_info = (FileInfo *)malloc(sizeof(FileInfo));
-    file_info->resultado = fopen("salida.txt", "w");
-    file_info->files_per_child = MAX(1, (argc-1)/(child_qty*10));
-    file_info->files_assigned = 1;
-    file_info->total_files_to_process = argc-1;
-    file_info->file_index = 0;
-    return file_info;
+    if (ipc->shm_fd == -1) {
+        perror("shm_open");
+        exit(EXIT_FAILURE);
+    }
+
+    ipc->shared_memory = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, ipc->shm_fd, 0);
+    if (ipc->shared_memory == MAP_FAILED) {
+        perror("mmap");
+        exit(EXIT_FAILURE);
+    }
+
+    sleep(2);
+
+
+
+    ipc->switch_sem = sem_open(SWITCH_SEM_NAME, 0);
+    if (ipc->switch_sem != SEM_FAILED) {
+        (*vision_opened)++;
+    }
+    if (*vision_opened <= 0) {
+        printf("No view detected - No semaphore initialization\n");
+    }
+
+    if (ftruncate(ipc->shm_fd, SHARED_MEMORY_SIZE) == -1) {
+        perror("ftruncate");
+        exit(EXIT_FAILURE);
+    }
 }
-
-
-
 
 int main(int argc, const char *argv[]){
-
     if (argc == 1) {
-        printf( "Usage: %s <file1> <file2>\n", argv[0]);
+        printf("Usage: %s <file1> <file2>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
-    int child_qty=MIN(MAX_CHILD_QTY,argc-1);
-   int parent_to_child_pipe[child_qty][2];
-    int child_to_parent_pipe[child_qty][2];
-    int  child_pid[child_qty];
-    FileInfo *file_info = initialize_file_info(argc, child_qty);
-
-    if (!isatty(STDOUT_FILENO)) {
-         write(STDOUT_FILENO, SHARED_MEMORY_NAME,strlen(SHARED_MEMORY_NAME)+1);
-
-     } else {
-         printf("%s\n", SHARED_MEMORY_NAME);
-     }
+    setvbuf(stdout, NULL, _IONBF, 0);
+    ProgramParams params;
+    params.child_qty = MIN(MAX_CHILD_QTY, argc - 1);
+    int files_per_child = MAX(1, (argc - 1) / (params.child_qty * 10));
+    params.files_assigned = 1;
+    params.total_files_to_process = argc - 1;
+    IPCResources ipc;
     int view_status = 0;
-    int shm_fd;
-    char *shared_memory;
-    sem_t *shm_sem;
-    sem_t *switch_sem;
-    start_shared_memory(&shm_fd, &shared_memory, &shm_sem,&switch_sem , &view_status);
-
-    for(int i=0;i<child_qty;i++){ // podria llamar a este loop como una nueva funcion
-
-        create_pipes(parent_to_child_pipe,child_to_parent_pipe,i);
-
-        create_child_process(parent_to_child_pipe,child_to_parent_pipe,i, child_pid);
-
-        handle_pipes_parent(parent_to_child_pipe,child_to_parent_pipe,i);
+    resultado = fopen("salida.txt", "w");
+    start_shared_memory(&ipc, &view_status);
+    if (!isatty(STDOUT_FILENO)) {
+        write(STDOUT_FILENO, SHARED_MEMORY_NAME, strlen(SHARED_MEMORY_NAME) + 1);
+    } else {
+        printf("%s\n", SHARED_MEMORY_NAME);
     }
 
-    send_initial_files(child_qty,file_info->total_files_to_process,&file_info->files_assigned, parent_to_child_pipe, argv, file_info->files_per_child);
-
-   
-    int info_length = strlen("ID:%d MD5:%s\n") + MAX_MD5 + MAX_PATH ;
-
-while (file_info->file_index < file_info->total_files_to_process) {
-    int max_read=-1;
-    FD_ZERO(&(file_info->read_fds));
-    set_fd(child_to_parent_pipe, 0, &max_read, &(file_info->read_fds), child_qty);
-
-    if (select(max_read+ 1, &(file_info->read_fds), NULL, NULL, NULL) == -1) {
-        perror("select read");
-        exit(EXIT_FAILURE);
+    for(int i = 0; i < params.child_qty; i++) {
+        create_pipes(ipc.parent_to_child_pipe, ipc.child_to_parent_pipe, i);
+        create_child_process(&ipc, &params, i);
+        handle_pipes_parent(ipc.parent_to_child_pipe, ipc.child_to_parent_pipe, i);
     }
 
-   
-     if (view_status == 2) {
-            sem_wait(shm_sem);
+    send_initial_files(&params, &ipc, argv, files_per_child);
+
+    fd_set read_fds;
+    int file_index = 0;
+    int info_length = strlen("ID:%d MD5:%s\n") + MAX_MD5 + MAX_PATH;
+
+    while (file_index < params.total_files_to_process) {
+        int max_read = -1;
+        FD_ZERO(&read_fds);
+        set_fd(&ipc, 0, &max_read, &read_fds, &params);
+
+        if (select(max_read + 1, &read_fds, NULL, NULL, NULL) == -1) {
+            perror("select read");
+            exit(EXIT_FAILURE);
         }
-    for (int i = 0; i < child_qty; i++) {
-        if (FD_ISSET(child_to_parent_pipe[i][0], &(file_info->read_fds))) {
-            int bytes_read = pipe_read(child_to_parent_pipe[i][0], path);
-            if (bytes_read < 0) {
-                perror("read");
-                exit(EXIT_FAILURE);
-            } else {
-                
-                fprintf(file_info->resultado, "ID:%d MD5:%s\n", child_pid[i], path);
-                fflush(file_info->resultado);
-                sprintf(shared_memory + file_info->file_index * info_length, "ID:%d MD5:%s\n", child_pid[i], path);
-                if (view_status == 2) {
-                sem_post(switch_sem);
-                sem_post(shm_sem); 
+        for (int i = 0; i < params.child_qty; i++) {
+            if (FD_ISSET(ipc.child_to_parent_pipe[i][0], &read_fds)) {
+                int bytes_read = pipe_read(ipc.child_to_parent_pipe[i][0], path);
+                if (bytes_read < 0) {
+                    perror("read");
+                    exit(EXIT_FAILURE);
+                } else {
+                    fprintf(resultado, "ID:%d MD5:%s\n", params.child_pid[i], path);
+                    fflush(resultado);
+                    sprintf(ipc.shared_memory + file_index * info_length, "ID:%d MD5:%s\n", params.child_pid[i], path);
+                    if (view_status == 1) {
+                        sem_post(ipc.switch_sem);
+                    }
+                    if (params.files_assigned < argc) {
+                        send_to_process(i, 1, &params.files_assigned, params.total_files_to_process, &ipc, argv);
+                    }
+                    file_index++;
                 }
-                if (file_info->files_assigned < file_info->total_files_to_process ) {
-                    send_to_process(i, 1, &file_info->files_assigned, file_info->total_files_to_process, parent_to_child_pipe, argv);
-                }
-                file_info->file_index++;
-               
             }
         }
     }
-   
-}
-    if (view_status == 2) {
-    sem_wait(shm_sem);
-    sprintf(shared_memory + file_info->file_index * info_length, "\t");
-    sem_post(shm_sem);
-    sem_post(switch_sem);
-    sem_close(shm_sem);
-    sem_close(switch_sem);
-    }
-   
-close_pipes(child_to_parent_pipe, parent_to_child_pipe, child_qty);
-sem_unlink(SHM_SEM_NAME);
-sem_unlink(SWITCH_SEM_NAME);
-close(shm_fd);
-shm_unlink(SHARED_MEMORY_NAME);
-fclose(file_info->resultado);
-free(file_info);
-exit(EXIT_SUCCESS);
-}
 
+    if (view_status == 1) {
+        sprintf(ipc.shared_memory + file_index * info_length, "\t");
+        sem_post(ipc.switch_sem);
+        sem_close(ipc.switch_sem);
+    }
+
+    close_pipes(ipc.child_to_parent_pipe, ipc.parent_to_child_pipe, params.child_qty);
+    sem_unlink(SHM_SEM_NAME);
+    sem_unlink(SWITCH_SEM_NAME);
+    close(ipc.shm_fd);
+    shm_unlink(SHARED_MEMORY_NAME);
+    fclose(resultado);
+    exit(EXIT_SUCCESS);
+}

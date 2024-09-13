@@ -1,13 +1,14 @@
-#include <sys/types.h>
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include <sys/wait.h>
 #include "commons.h"
 #include "shared_memory.h"
 
 int main (int argc, const char * argv[]) {
     sem_unlink(SWITCH_SEM_NAME);
-    sem_unlink(SHM_SEM_NAME);
-    sem_t *sem =initialize_semaphore(SHM_SEM_NAME,1);
     sem_t *sem_switch=initialize_semaphore(SWITCH_SEM_NAME,0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stdin, NULL, _IONBF, 0);
     int shm_fd;
     char *shared_memory;
     char shm_name[MAX_PATH] = {0};
@@ -23,8 +24,7 @@ int main (int argc, const char * argv[]) {
 
         shared_memory = create_shared_memory(shm_name, &shm_fd);
     }
-    read_shared_memory(sem, sem_switch, shared_memory);
+    read_shared_memory( sem_switch, shared_memory);
     close(shm_fd);
-    sem_close(sem);
     sem_close(sem_switch);
 }
