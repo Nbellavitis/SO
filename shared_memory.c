@@ -11,7 +11,7 @@ sem_t *initialize_semaphore(const char *name, int value) {
     return sem;
 }
 
-char *create_shared_memory(const char * sh_mem_name, int *shm_fd){
+char *create_shared_memory(const char * sh_mem_name, int *shm_fd) {
    *shm_fd = shm_open(sh_mem_name, O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
     if (*shm_fd == -1) {
         perror("shm_open");

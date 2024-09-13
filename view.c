@@ -12,12 +12,12 @@ int main (int argc, const char * argv[]) {
     int shm_fd;
     char *shared_memory;
     char shm_name[MAX_PATH] = {0};
-    if (argc > 1){
+    if (argc > 1) {
         shared_memory=create_shared_memory(argv[1],&shm_fd);
     }
     else {
         pipe_read(STDIN_FILENO, shm_name);
-        if (shm_name[0] == '\0'){
+        if (shm_name[0] == '\0') {
             printf("PATH_LIMITATION_ERROR");
             exit(1);
         }
