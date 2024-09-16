@@ -12,7 +12,7 @@
 #include <unistd.h>      // POSIX operating system API (e.g., close, pipe)
 #include <errno.h>       // Error handling (e.g., errno)
 
-#define SHARED_MEMORY_SIZE (2 * 1048576) // 2MB
+#define SHARED_MEMORY_SIZE (3 * 1048576) // 3MB
 #define SHARED_MEMORY_NAME "shared_memory"
 #define SHARED_MEMORY_NAME_LENGTH (strlen(SHARED_MEMORY_NAME) + 1)
 #define SWITCH_SEM_NAME "switch_sem"
