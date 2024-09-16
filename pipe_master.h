@@ -18,6 +18,6 @@ void handle_pipes_parent(int parent_to_child_pipe[][2], int child_to_parent_pipe
 
 void create_pipes(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index);
 
-void close_brothers_pipes(int child_to_parent_pipe[][2], int parent_to_child_pipe[][2],int index);
+void close_brothers_pipes(int child_to_parent_pipe[][2], int parent_to_child_pipe[][2], int index);
 
 #endif // PIPE_MASTER_H
