@@ -106,7 +106,7 @@ void send_initial_files(program_params *params, ipc_resources *ipc, const char *
 void start_shared_memory(ipc_resources *ipc) {
 
     create_shared_memory(SHARED_MEMORY_NAME, &ipc->shm_fd, &ipc->shared_memory, O_CREAT | O_RDWR,
-                         PROT_READ | PROT_WRITE, ipc->switch_sem);
+                         PROT_READ | PROT_WRITE, NULL);
 
     sleep(2);
     if (!isatty(STDOUT_FILENO)) {
@@ -136,8 +136,8 @@ void initialize_params(program_params *params, int argc) {
 }
 
 void connect_shared_memory(ipc_resources *ipc, int *view_status) {
-    ipc->switch_sem = initialize_semaphore(SWITCH_SEM_NAME, 0, view_status);
     start_shared_memory(ipc);
+    ipc->switch_sem = initialize_semaphore(SWITCH_SEM_NAME, 0, view_status);
     if (*view_status <= 0) {
         printf("No view detected - No semaphore initialization\n");
     }
