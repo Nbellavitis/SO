@@ -23,6 +23,8 @@ int main(int argc, const char *argv[]) {
     }
 
     read_shared_memory(sem_switch, shared_memory);
+    munmap(shared_memory, SHARED_MEMORY_SIZE);
+    shm_unlink(SHARED_MEMORY_NAME);
     close(shm_fd);
     sem_close(sem_switch);
 }
