@@ -3,17 +3,17 @@
 #include "commons.h"
 #include "pipe_master.h"
 
-#define MAX_SIZE 200
-int pipe_read(int fd, char *buff) {
-    int bytes_read = read(fd, buff, MAX_SIZE);
-    if (bytes_read == 0) {
-        // EOF reached, pipe closed
-        return 0;
-    } else if (bytes_read > 0) {
-        buff[--bytes_read] = '\0';
+
+    int pipe_read(int fd, char *buff, int length){
+        int bytes_read = read(fd, buff, length);
+        if (bytes_read == 0) {
+            // EOF reached, pipe closed
+            return 0;
+        } else if (bytes_read > 0) {
+            buff[--bytes_read] = '\0';
+        }
+        return bytes_read;
     }
-    return bytes_read;
-}
 
 
 void handle_pipes_child(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index) {

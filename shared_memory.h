@@ -10,8 +10,9 @@
 #include <fcntl.h>       // File control options (e.g., O_CREAT, O_RDWR)
 #include <unistd.h>      // POSIX operating system API (e.g., close, pipe)
 #include <errno.h>       // Error handling (e.g., errno)
-#define SHARED_MEMORY_SIZE 1048576 // 1MB
+#define SHARED_MEMORY_SIZE (2 * 1048576) // 2MB
 #define SHARED_MEMORY_NAME "shared_memory"
+#define SHARED_MEMORY_NAME_LENGTH (strlen(SHARED_MEMORY_NAME) + 1)
 #define SWITCH_SEM_NAME "switch_sem"
 
 sem_t *initialize_semaphore(const char *name, int value,int * view_status);

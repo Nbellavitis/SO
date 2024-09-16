@@ -16,7 +16,7 @@ int main (int argc, const char * argv[]) {
         create_shared_memory(argv[1],&shm_fd,&shared_memory, O_RDWR, PROT_READ);
     }
     else {
-        pipe_read(STDIN_FILENO, shm_name);
+        pipe_read(STDIN_FILENO, shm_name, SHARED_MEMORY_NAME_LENGTH);
         if (shm_name[0] == '\0') {
             printf("PATH_LIMITATION_ERROR");
             exit(1);

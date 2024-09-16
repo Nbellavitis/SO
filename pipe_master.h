@@ -6,7 +6,7 @@
 #include <sys/select.h> // For select()
 
 // Function to read from a pipe until a newline or null character is encountered
-int pipe_read(int fd, char *buff);
+int pipe_read(int fd, char *buff, int length);
 
 // Function to handle pipe setup for child process
 void handle_pipes_child(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index);
