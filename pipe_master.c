@@ -6,7 +6,12 @@
 #define MAX_SIZE 200
 int pipe_read(int fd, char *buff) {
     int bytes_read = read(fd, buff, MAX_SIZE);
-    buff[--bytes_read] = '\0';
+    if (bytes_read == 0) {
+        // EOF reached, pipe closed
+        return 0;
+    } else if (bytes_read > 0) {
+        buff[--bytes_read] = '\0';
+    }
     return bytes_read;
 }
 
