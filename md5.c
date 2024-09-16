@@ -41,16 +41,6 @@ void send_initial_files(program_params *params, ipc_resources *ipc, const char *
 
 void start_shared_memory(ipc_resources *ipc);
 
-int is_fd_open(int fd) {
-    if (fcntl(fd, F_GETFD) == -1) {
-        if (errno == EBADF) {
-            return 0;
-        } else {
-            HANDLE_ERROR("closed");
-        }
-    }
-    return 1;
-}
 
 void close_pipes_and_processes(int child_to_parent_pipe[][2], int parent_to_child_pipe[][2], int child_qty,
                                int child_pids[]) {
