@@ -8,14 +8,11 @@
 #include "shared_memory.h"
 #define MAX_CHILD_QTY 5
 #define INITIAL_FILES_PROPORTION 10
-#define MAX_MD5 32
-#define MAX_PATH 128
 #define MIN(x,y) (x<y) ? x:y
 #define MAX(x,y) (x>y) ? x:y
 char path[MAX_PATH+MAX_MD5];
 FILE * resultado;
 
-// Estructura para los recursos de IPC
 typedef struct {
     int parent_to_child_pipe[MAX_CHILD_QTY][2];
     int child_to_parent_pipe[MAX_CHILD_QTY][2];
@@ -24,7 +21,6 @@ typedef struct {
     sem_t *switch_sem;
 } ipc_resources;
 
-// Estructura para parámetros del programa
 typedef struct {
     int child_qty;
     int files_assigned;
@@ -86,18 +82,20 @@ void send_initial_files(program_params *params, ipc_resources *ipc, const char *
 }
 
 void start_shared_memory(ipc_resources *ipc, int *vision_opened) {
-    ipc->shm_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
 
-    if (ipc->shm_fd == -1) {
-        perror("shm_open");
-        exit(EXIT_FAILURE);
-    }
-
-    ipc->shared_memory = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, ipc->shm_fd, 0);
-    if (ipc->shared_memory == MAP_FAILED) {
-        perror("mmap");
-        exit(EXIT_FAILURE);
-    }
+    create_shared_memory(SHARED_MEMORY_NAME,&ipc->shm_fd,&ipc->shared_memory, O_CREAT | O_RDWR, PROT_READ | PROT_WRITE);
+//
+//    ipc->shm_fd = shm_open(SHARED_MEMORY_NAME, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+//    if (ipc->shm_fd == -1) {
+//        perror("shm_open");
+//        exit(EXIT_FAILURE);
+//    }
+//
+//    ipc->shared_memory = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, ipc->shm_fd, 0);
+//    if (ipc->shared_memory == MAP_FAILED) {
+//        perror("mmap");
+//        exit(EXIT_FAILURE);
+//    }
 
     sleep(2);
 
@@ -115,7 +113,26 @@ void start_shared_memory(ipc_resources *ipc, int *vision_opened) {
         exit(EXIT_FAILURE);
     }
 }
-
+void initialize_slaves(program_params *params, ipc_resources *ipc){
+    for(int i = 0; i < params->child_qty; i++) {
+        create_pipes(ipc->parent_to_child_pipe, ipc->child_to_parent_pipe, i);
+        create_child_process(ipc, params, i);
+        handle_pipes_parent(ipc->parent_to_child_pipe, ipc->child_to_parent_pipe, i);
+    }
+}
+void initialize_params(program_params *params, int argc ){
+    params->child_qty = MIN(MAX_CHILD_QTY, argc - 1);
+    params->files_assigned = 1;
+    params->total_files_to_process = argc - 1;
+}
+void connect_shared_memory(ipc_resources *ipc, int *view_status){
+    start_shared_memory(ipc, view_status);
+    if (!isatty(STDOUT_FILENO)) {
+        write(STDOUT_FILENO, SHARED_MEMORY_NAME, strlen(SHARED_MEMORY_NAME) + 1);
+    } else {
+        printf("%s\n", SHARED_MEMORY_NAME);
+    }
+}
 
 int main(int argc, const char *argv[]) {
     if (argc == 1) {
@@ -123,32 +140,19 @@ int main(int argc, const char *argv[]) {
         exit(EXIT_FAILURE);
     }
     setvbuf(stdout, NULL, _IONBF, 0);
-    program_params params;
-    params.child_qty = MIN(MAX_CHILD_QTY, argc - 1);
-    params.files_assigned = 1;
-    params.total_files_to_process = argc - 1;
 
+    program_params params;
+    initialize_params(&params, argc);
 
     ipc_resources ipc;
     int view_status = 0;
     resultado = fopen("salida.txt", "w");
 
-    start_shared_memory(&ipc, &view_status);
-    if (!isatty(STDOUT_FILENO)) {
-        write(STDOUT_FILENO, SHARED_MEMORY_NAME, strlen(SHARED_MEMORY_NAME) + 1);
-    } else {
-        printf("%s\n", SHARED_MEMORY_NAME);
-    }
+    connect_shared_memory(&ipc, &view_status);
+
+    initialize_slaves(&params, &ipc);
 
     int files_per_child = MAX(1, (argc - 1) / (params.child_qty * INITIAL_FILES_PROPORTION));
-
-
-    for(int i = 0; i < params.child_qty; i++) {
-        create_pipes(ipc.parent_to_child_pipe, ipc.child_to_parent_pipe, i);
-        create_child_process(&ipc, &params, i);
-        handle_pipes_parent(ipc.parent_to_child_pipe, ipc.child_to_parent_pipe, i);
-    }
-
     send_initial_files(&params, &ipc, argv, files_per_child);
 
     fd_set read_fds;

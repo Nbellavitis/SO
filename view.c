@@ -13,7 +13,7 @@ int main (int argc, const char * argv[]) {
     char *shared_memory;
     char shm_name[MAX_PATH] = {0};
     if (argc > 1) {
-        shared_memory=create_shared_memory(argv[1],&shm_fd);
+        create_shared_memory(argv[1],&shm_fd,&shared_memory, O_RDWR, PROT_READ);
     }
     else {
         pipe_read(STDIN_FILENO, shm_name);
@@ -22,7 +22,7 @@ int main (int argc, const char * argv[]) {
             exit(1);
         }
 
-        shared_memory = create_shared_memory(shm_name, &shm_fd);
+        create_shared_memory(shm_name, &shm_fd,&shared_memory, O_RDWR, PROT_READ);
     }
     read_shared_memory( sem_switch, shared_memory);
     close(shm_fd);

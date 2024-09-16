@@ -11,19 +11,17 @@ sem_t *initialize_semaphore(const char *name, int value) {
     return sem;
 }
 
-char *create_shared_memory(const char * sh_mem_name, int *shm_fd) {
-   *shm_fd = shm_open(sh_mem_name, O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+void create_shared_memory(const char * sh_mem_name, int *shm_fd, char** shared_memory,  int oflag, int prot) {
+   *shm_fd = shm_open(sh_mem_name, oflag, S_IRWXU | S_IRWXG | S_IRWXO);
     if (*shm_fd == -1) {
         perror("shm_open");
-        printf("No MD5 program active.\n");
         exit(EXIT_FAILURE);
     }
-    char *shared_memory = mmap(NULL, SHARED_MEMORY_SIZE, PROT_READ, MAP_SHARED, *shm_fd, 0);
+    *shared_memory = mmap(NULL, SHARED_MEMORY_SIZE, prot, MAP_SHARED, *shm_fd, 0);
     if (shared_memory == MAP_FAILED) {
         perror("mmap");
         exit(EXIT_FAILURE);
     }
-    return shared_memory;
 }
 
 void read_shared_memory( sem_t *switch_sem, char *shared_memory) {
