@@ -4,24 +4,19 @@ CFLAGS = -Wall -std=c99 -lm -lrt -pthread -g -D_XOPEN_SOURCE=500
 EXECUTABLES = slave md5 view
 OBJECTS = slave.o md5.o pipe_master.o view.o shared_memory.o
 
-# Regla principal para construir ambos ejecutables
 all: $(EXECUTABLES)
 	@echo "Build complete. Cleaning up object files..."
 	$(MAKE) clean_objects
 
-# Regla para construir el ejecutable `slave`
 slave: slave.o pipe_master.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Regla para construir el ejecutable `md5`
 md5: md5.o pipe_master.o shared_memory.o
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Regla para construir el archivo objeto `slave.o` desde `slave.c`
 slave.o: slave.c pipe_master.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Regla para construir el archivo objeto `md5.o` desde `md5.c`
 md5.o: md5.c pipe_master.h shared_memory.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -30,15 +25,12 @@ view.o: view.c pipe_master.h shared_memory.h
 
 view: view.o pipe_master.o shared_memory.o
 	$(CC) $(CFLAGS) -o $@ $^	
-# Regla para construir el archivo objeto `pipe_master.o` desde `pipe_master.c`
 pipe_master.o: pipe_master.c pipe_master.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Regla para eliminar los archivos objeto
 clean_objects:
 	rm -f $(OBJECTS)
 
-# Regla para limpiar todo (ejecutables y otros archivos generados)
 clean:
 	rm -f $(EXECUTABLES) salida.txt PVS-Studio.log report.tasks strace_out
 	rm -rf .config
