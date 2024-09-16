@@ -1,76 +1,75 @@
-# Proyecto de Cálculo de MD5 Distribuido con IPC
+# Distributed MD5 Calculation Project with IPC
 
-## Descripción
-Este proyecto muestra el uso de la Comunicación entre Procesos (IPC) para calcular el **hash MD5** de múltiples archivos de manera distribuida. También permite visualizar los resultados utilizando memoria compartida.
 
-## Contenidos
-1. [Requerimientos](#requerimientos)
-2. [Creación](#creacion)
-3. [Uso](#uso)
+## Description
+The goal of this project was to demonstrate IPC for calculating **hash MD5** of multiple files in a distributed way. It also alows to visualize the results by using shared memory.
 
----
-
-## Requerimientos
-
-El proyecto requiere de:
-
-- **Docker**: Para la gestión de contenedores.
-- **Imagen provista por la cátedra**: Para las configuraciones específicas.
-
-Puedes seguir las instrucciones de instalación en el siguiente enlace:
-
-[Guía de instalación Docker e imagen](https://github.com/alejoaquili/ITBA-72.11-SO/blob/main/docker/README.md/)
+## Contents
+1. [Requirements](#requirements)
+2. [Creation](#creation)
+3. [Use](#use)
+4. [Warinings](#warnings)
 
 ---
 
-## Creación
+## Requirements
 
-Para compilar todo el proyecto s `./md5` y `./view`, se debe correr el siguiente comando dentro del contenedor Docker:
+The project requires the following:
+
+- **Docker**: To manage the containers.
+- **The docker image provided by the faculty**: This image includes the necessary configurations to be able to run the project.
+
+To install docker and the required image, follow the next instrucions:
+[Docker and image instalation instructions](https://github.com/alejoaquili/ITBA-72.11-SO/blob/main/docker/README.md/)
+
+---
+
+## Creation
+
+To compile the project, we should run the following command inside the Docker container:
 
 ```bash
 make all
 ```
-## Uso
 
-El proyecto se puede ejecutar de dos maneras: **usando pipes** o **en dos terminales separadas**.
+## Use
 
-### 1. Uso con pipes
+The project can be executed, both **using pipes** or **with two terminals**.
 
-Este método permite procesar varios archivos en una sola línea:
+### 1. By pipes
+
+This method allows us to process multiple files in a single line;
 
 ```bash
-./md5 archivo1 arcivo2 archivo3 ... | ./view
+./md5 file1 file2 file3 ... | ./view
 ```
-O puedes procesar todos los archivos en el directorio con:
+or you can process all the files by using *:
 
 ```bash
 ./md5 * | ./view
 ```
 
-### 2. Uso en terminales separadas
+### 2. Using separate terminals
 
-Para usar dos terminales distintas, sigue estos pasos:
+To work with both terminals, follow the code:
 
-- En la **terminal 1**, corre el comando `./md5` para calcular los hashes MD5 de los archivos:
+- On **terminal 1**, run the command `./md5` to get the MD5 hash from the files wanted:
 
   ```bash
   ./md5 archivo1 archivo2 archivo3 ...
   ```
-- En la terminal 2, ejecuta el visor ./view para ver los resultados almacenados en la memoria compartida:
+-On **terminal 2**, execute the `./view` file to see the results saved in the shared memory:
 - 
  ```bash
   ./view shared_memory
   ```
 
-##  Aviso Importante
+##  Warnings
 
-1. **Ejecución en Docker**:  
-   Asegúrate de que todos los comandos (`./md5` y `./view`) se ejecuten dentro del contenedor Docker provisto por la cátedra. De lo contrario, no deberia funcionar correctamente.
+1. **Docker Execution**:  
+   Be sure that all the commands are executed in the docker contanier, with the provided image. To contrary it shouldnt work.
 
-2. **Tiempo de Ejecución**:  
-   Es importante ejecutar `./view` mientras `./md5` aún está procesando los archivos. Si `./md5` termina antes de que se inicie `./view`, los datos en la memoria compartida podrían no estar disponibles para su visualización.
-
-3. **Docker Make**:  
-   No olvidase  decompilar el proyecto dentro del contenedor usando el comando `make all` antes de intentar ejecutar cualquier proceso.
+2. **Execution Time**:  
+   Its important to execute `./view` as `./md5` is still processing files. If `./md5` finishes before `./view` starts, view is not going to be able to work/
 
 
