@@ -98,14 +98,10 @@ void start_shared_memory(ipc_resources *ipc, int *vision_opened) {
 //    }
 
     sleep(2);
-
-    ipc->switch_sem = sem_open(SWITCH_SEM_NAME, 0);
-
-    if (ipc->switch_sem != SEM_FAILED) {
-        (*vision_opened)++;
-    }
-    if (*vision_opened <= 0) {
-        printf("No view detected - No semaphore initialization\n");
+    if (!isatty(STDOUT_FILENO)) {
+        write(STDOUT_FILENO, SHARED_MEMORY_NAME, strlen(SHARED_MEMORY_NAME) + 1);
+    } else {
+        printf("%s\n", SHARED_MEMORY_NAME);
     }
 
     if (ftruncate(ipc->shm_fd, SHARED_MEMORY_SIZE) == -1) {
@@ -127,10 +123,13 @@ void initialize_params(program_params *params, int argc ){
 }
 void connect_shared_memory(ipc_resources *ipc, int *view_status){
     start_shared_memory(ipc, view_status);
-    if (!isatty(STDOUT_FILENO)) {
-        write(STDOUT_FILENO, SHARED_MEMORY_NAME, strlen(SHARED_MEMORY_NAME) + 1);
-    } else {
-        printf("%s\n", SHARED_MEMORY_NAME);
+
+    ipc->switch_sem = sem_open(SWITCH_SEM_NAME, 0);
+    if (ipc->switch_sem != SEM_FAILED) {
+        (*vision_opened)++;
+    }
+    if (*vision_opened <= 0) {
+        printf("No view detected - No semaphore initialization\n");
     }
 }
 
