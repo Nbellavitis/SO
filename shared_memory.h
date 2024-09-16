@@ -19,7 +19,7 @@
 
 sem_t *initialize_semaphore(const char *name, int value, int *view_status);
 
-void create_shared_memory(const char *sh_mem_name, int *shm_fd, char **shared_memory, int oflag, int prot);
+void create_shared_memory(const char *sh_mem_name, int *shm_fd, char **shared_memory, int oflag, int prot, sem_t *sem);
 
 void read_shared_memory(sem_t *switch_sem, char *shared_memory);
 

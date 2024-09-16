@@ -7,29 +7,28 @@ sem_t *initialize_semaphore(const char *name, int value, int *view_status) {
     sem_t *sem = sem_open(name, O_CREAT | O_EXCL, 0666, value);
 
     if (sem == SEM_FAILED) {
-        if (errno == EEXIST && view_status != NULL) {
+        if (errno == EEXIST ) {
             sem = sem_open(name, 0);
-            if (sem != SEM_FAILED) {
+            if (sem != SEM_FAILED && view_status != NULL) {
                 (*view_status)++;
             }
         } else {
             HANDLE_ERROR("sem_open (create semaphore)");
         }
     }
-
     return sem;
 }
 
-void create_shared_memory(const char *sh_mem_name, int *shm_fd, char **shared_memory, int oflag, int prot) {
+void create_shared_memory(const char *sh_mem_name, int *shm_fd, char **shared_memory, int oflag, int prot, sem_t *sem) {
     *shm_fd = shm_open(sh_mem_name, oflag, S_IRWXU | S_IRWXG | S_IRWXO);
     if (*shm_fd == -1) {
-        perror("shm_open");
-        exit(EXIT_FAILURE);
+        sem_close(sem);
+        HANDLE_ERROR("shm_open");
     }
     *shared_memory = mmap(NULL, SHARED_MEMORY_SIZE, prot, MAP_SHARED, *shm_fd, 0);
     if (shared_memory == MAP_FAILED) {
-        perror("mmap");
-        exit(EXIT_FAILURE);
+        sem_close(sem);
+        HANDLE_ERROR("mmap");
     }
 }
 

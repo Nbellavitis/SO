@@ -46,7 +46,7 @@ int is_fd_open(int fd) {
         if (errno == EBADF) {
             return 0;
         } else {
-            HANDLE_ERROR("closed")
+            HANDLE_ERROR("closed");
         }
     }
     return 1;
@@ -58,7 +58,7 @@ void close_pipes_and_processes(int child_to_parent_pipe[][2], int parent_to_chil
         close(child_to_parent_pipe[i][0]);
         close(parent_to_child_pipe[i][1]);
         int status;
-        int pid = waitpid(child_pids[i], &status, 0);
+        int pid = waitpid(child_pids[i], &status, 0); //ensure there are no zombies
         if (pid == -1) {
             HANDLE_ERROR("waitpid");
         }
@@ -106,7 +106,7 @@ void send_initial_files(program_params *params, ipc_resources *ipc, const char *
 void start_shared_memory(ipc_resources *ipc) {
 
     create_shared_memory(SHARED_MEMORY_NAME, &ipc->shm_fd, &ipc->shared_memory, O_CREAT | O_RDWR,
-                         PROT_READ | PROT_WRITE);
+                         PROT_READ | PROT_WRITE, ipc->switch_sem);
 
     sleep(2);
     if (!isatty(STDOUT_FILENO)) {
@@ -136,8 +136,8 @@ void initialize_params(program_params *params, int argc) {
 }
 
 void connect_shared_memory(ipc_resources *ipc, int *view_status) {
-    start_shared_memory(ipc);
     ipc->switch_sem = initialize_semaphore(SWITCH_SEM_NAME, 0, view_status);
+    start_shared_memory(ipc);
     if (*view_status <= 0) {
         printf("No view detected - No semaphore initialization\n");
     }
@@ -167,7 +167,7 @@ void read_from_slaves(program_params *params, ipc_resources *ipc, int argc, cons
             if (bytes_read < 0) {
                 HANDLE_ERROR("read");
             } else {
-                print_output(printed_files, params, ipc, i, argc, argv, path);
+                print_output(printed_files, params, ipc, i, argc, argv, path); //also sends files to process
             }
         }
     }
@@ -184,7 +184,7 @@ process_remaining_files(program_params *params, ipc_resources *ipc, int argc, co
         if (select(max_read + 1, &read_fds, NULL, NULL, NULL) == -1) {
             HANDLE_ERROR("select read");
         }
-        read_from_slaves(params, ipc, argc, argv, &read_fds, printed_files); //also sends more files to process
+        read_from_slaves(params, ipc, argc, argv, &read_fds, printed_files); //also handles output from slaves
     }
 }
 
@@ -198,10 +198,12 @@ void close_resources(program_params *params, ipc_resources *ipc, int printed_fil
                               params->child_pid);
     sem_unlink(SWITCH_SEM_NAME);
     sem_close(ipc->switch_sem);
+
     close(ipc->shm_fd);
     munmap(ipc->shared_memory, SHARED_MEMORY_SIZE);
     shm_unlink(SHARED_MEMORY_NAME);
     fclose(result);
+
     exit(EXIT_SUCCESS);
 }
 
