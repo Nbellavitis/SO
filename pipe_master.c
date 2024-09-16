@@ -31,13 +31,20 @@ void handle_pipes_parent(int parent_to_child_pipe[][2], int child_to_parent_pipe
     close(child_to_parent_pipe[index][1]);
 }
 
-void close_pipes(int child_to_parent_pipe[][2], int parent_to_child_pipe[][2], int child_qty ) {
+void close_pipes(int child_to_parent_pipe[][2], int parent_to_child_pipe[][2], int child_qty, int child_pids[]) {
     for (size_t i = 0; i < child_qty; i++)
     {
         close(child_to_parent_pipe[i][0]);
         close(parent_to_child_pipe[i][1]);
+        int status;
+        int pid = waitpid(child_pids[i], &status, 0);
+        if(pid == -1) {
+            perror("waitpid");
+            exit(EXIT_FAILURE);
+        }
     }
 }
+
 void create_pipes(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index) {
     if(pipe(parent_to_child_pipe[index]) == -1 || pipe(child_to_parent_pipe[index]) == -1) {
         perror("pipe");

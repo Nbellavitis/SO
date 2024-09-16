@@ -47,6 +47,21 @@ int is_fd_open(int fd) {
     return 1;  
 }
 
+void close_pipes_and_processes(int child_to_parent_pipe[][2], int parent_to_child_pipe[][2], int child_qty, int child_pids[]) {
+    for (size_t i = 0; i < child_qty; i++)
+    {
+        close(child_to_parent_pipe[i][0]);
+        close(parent_to_child_pipe[i][1]);
+        int status;
+        int pid = waitpid(child_pids[i], &status, 0);
+        if(pid == -1) {
+            perror("waitpid");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+
 void set_fd(ipc_resources *ipc, int flag, int *max_fd, fd_set *read_fds, program_params *params) {
     for (int i = 0; i < params->child_qty; i++) {
         if (ipc->child_to_parent_pipe[i][flag] > *max_fd) {
@@ -114,7 +129,7 @@ void initialize_params(program_params *params, int argc ) {
 void connect_shared_memory(ipc_resources *ipc, int *view_status) {
     start_shared_memory(ipc);
     ipc->switch_sem = initialize_semaphore(SWITCH_SEM_NAME, 0,view_status );
-    if (*view_status <= 0){
+    if (*view_status <= 0) {
         printf("No view detected - No semaphore initialization\n");
     }
 }
@@ -144,7 +159,7 @@ void read_from_slaves(program_params *params, ipc_resources *ipc, int argc, cons
         }
     }
 }
-void process_remaining_files(program_params *params,ipc_resources *ipc, int argc, const char * argv[], int * printed_files ){
+void process_remaining_files(program_params *params,ipc_resources *ipc, int argc, const char * argv[], int * printed_files ) {
     fd_set read_fds;
     while (*printed_files < params->total_files_to_process) {
         int max_read = -1;
@@ -158,13 +173,13 @@ void process_remaining_files(program_params *params,ipc_resources *ipc, int argc
         read_from_slaves(params,ipc, argc, argv, &read_fds, printed_files); //also sends more files to process
     }
 }
-void close_resources(program_params * params, ipc_resources *ipc, int printed_files ){
+void close_resources(program_params * params, ipc_resources *ipc, int printed_files ) {
     if (params->view_status == 1) {
         sprintf(ipc->shared_memory + printed_files * INFO_LENGTH, "\t");
         sem_post(ipc->switch_sem);
     }
 
-    close_pipes(ipc->child_to_parent_pipe, ipc->parent_to_child_pipe, params->child_qty);
+    close_pipes_and_processes(ipc->child_to_parent_pipe, ipc->parent_to_child_pipe, params->child_qty, params->child_pid);
     sem_unlink(SWITCH_SEM_NAME);
     sem_close(ipc->switch_sem);
     close(ipc->shm_fd);

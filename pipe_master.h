@@ -15,7 +15,6 @@ void handle_pipes_child(int parent_to_child_pipe[][2], int child_to_parent_pipe[
 void handle_pipes_parent(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index);
 
 // Function to close all pipes in the parent process
-void close_pipes(int child_to_parent_pipe[][2], int parent_to_child_pipe[][2], int child_qty);
 
 void create_pipes(int parent_to_child_pipe[][2], int child_to_parent_pipe[][2], int index);
 
