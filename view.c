@@ -6,7 +6,7 @@
 
 int main (int argc, const char * argv[]) {
     sem_unlink(SWITCH_SEM_NAME);
-    sem_t *sem_switch=initialize_semaphore(SWITCH_SEM_NAME,0);
+    sem_t *sem_switch=initialize_semaphore(SWITCH_SEM_NAME,0,NULL);
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stdin, NULL, _IONBF, 0);
     int shm_fd;

@@ -14,7 +14,7 @@
 #define SHARED_MEMORY_NAME "shared_memory"
 #define SWITCH_SEM_NAME "switch_sem"
 
-sem_t *initialize_semaphore(const char *name, int value);
+sem_t *initialize_semaphore(const char *name, int value,int * view_status);
 
 void create_shared_memory(const char * sh_mem_name, int *shm_fd, char** shared_memory, int oflag, int prot);
 

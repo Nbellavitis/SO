@@ -2,12 +2,21 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 #include "shared_memory.h"
 
-sem_t *initialize_semaphore(const char *name, int value) {
-    sem_t *sem = sem_open(name, O_CREAT, 0666, value);
+sem_t *initialize_semaphore(const char *name, int value,int * view_status) {
+sem_t *sem = sem_open(name, O_CREAT | O_EXCL, 0666, value);
+
     if (sem == SEM_FAILED) {
-        perror("sem_open");
-        exit(EXIT_FAILURE);
+        if (errno == EEXIST && view_status != NULL) {
+            sem = sem_open(name, 0);
+            if (sem != SEM_FAILED ) {
+              (*view_status)++;
+            }
+        } else {
+            perror("sem_open (create semaphore)");
+            exit(EXIT_FAILURE);
+        }
     }
+    
     return sem;
 }
 

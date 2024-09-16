@@ -37,13 +37,13 @@ void start_shared_memory(ipc_resources *ipc, int *vision_opened);
 int is_fd_open(int fd) {
     if (fcntl(fd, F_GETFD) == -1) {
         if (errno == EBADF) {
-            return 0;  // File descriptor is not open
+            return 0;  
         } else {
             perror("closed");
             exit(EXIT_FAILURE);
         }
     }
-    return 1;  // File descriptor is open
+    return 1;  
 }
 
 void set_fd(ipc_resources *ipc, int flag, int *max_fd, fd_set *read_fds, program_params *params) {
@@ -123,12 +123,8 @@ void initialize_params(program_params *params, int argc ){
 }
 void connect_shared_memory(ipc_resources *ipc, int *view_status){
     start_shared_memory(ipc, view_status);
-
-    ipc->switch_sem = sem_open(SWITCH_SEM_NAME, 0);
-    if (ipc->switch_sem != SEM_FAILED) {
-        (*vision_opened)++;
-    }
-    if (*vision_opened <= 0) {
+    ipc->switch_sem = initialize_semaphore(SWITCH_SEM_NAME, 0,view_status );
+    if (*view_status <= 0){
         printf("No view detected - No semaphore initialization\n");
     }
 }
@@ -156,7 +152,7 @@ int main(int argc, const char *argv[]) {
 
     fd_set read_fds;
     int file_index = 0;
-    int info_length = strlen("ID:%d MD5:%s\n") + MAX_MD5 + MAX_PATH;
+    int info_length = strlen("PID:%d MD5:%s\n") + MAX_MD5 + MAX_PATH;
 
     while (file_index < params.total_files_to_process) {
         int max_read = -1;
@@ -175,9 +171,9 @@ int main(int argc, const char *argv[]) {
                     perror("read");
                     exit(EXIT_FAILURE);
                 } else {
-                    fprintf(resultado, "ID:%d MD5:%s\n", params.child_pid[i], path);
+                    fprintf(resultado, "PID:%d MD5:%s\n", params.child_pid[i], path);
                     fflush(resultado);
-                    sprintf(ipc.shared_memory + file_index * info_length, "ID:%d MD5:%s\n", params.child_pid[i], path);
+                    sprintf(ipc.shared_memory + file_index * info_length, "PID:%d MD5:%s\n", params.child_pid[i], path);
                     if (view_status == 1) {
                         sem_post(ipc.switch_sem);
                     }
@@ -196,12 +192,8 @@ int main(int argc, const char *argv[]) {
     }
 
     close_pipes(ipc.child_to_parent_pipe, ipc.parent_to_child_pipe, params.child_qty);
-
-    if(view_status == 1) {
-        sem_unlink(SWITCH_SEM_NAME);
-        sem_close(ipc.switch_sem);
-    }
-
+    sem_unlink(SWITCH_SEM_NAME);
+    sem_close(ipc.switch_sem);
     close(ipc.shm_fd);
     shm_unlink(SHARED_MEMORY_NAME);
     fclose(resultado);
