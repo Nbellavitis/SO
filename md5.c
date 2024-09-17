@@ -208,7 +208,7 @@ int main(int argc, const char *argv[]) {
     initialize_params(&params, argc);
 
     ipc_resources ipc;
-    result = fopen("salida.txt", "w");
+    result = fopen("output.txt", "w");
     connect_shared_memory(&ipc, &(params.view_status));
 
     initialize_slaves(&params, &ipc);

@@ -32,7 +32,7 @@ clean_objects:
 	rm -f $(OBJECTS)
 
 clean:
-	rm -f $(EXECUTABLES) salida.txt PVS-Studio.log report.tasks strace_out
+	rm -f $(EXECUTABLES) output.txt PVS-Studio.log report.tasks strace_out
 	rm -rf .config
 	$(MAKE) clean_objects
 
