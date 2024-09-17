@@ -199,7 +199,7 @@ void close_resources(program_params *params, ipc_resources *ipc, int printed_fil
 
 int main(int argc, const char *argv[]) {
     if (argc == 1) {
-        printf("Usage: %s <file1> <file2>\n", argv[0]);
+        printf("Usage: ./%s <path 1> <path 2> <path 3> ....\n", argv[0]);
         exit(EXIT_FAILURE);
     }
     setvbuf(stdout, NULL, _IONBF, 0);
