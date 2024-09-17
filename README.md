@@ -34,7 +34,7 @@ make all
 
 ## Usage
 
-The project can be executed using either **pipes** or **separate terminals**.
+The project can be executed using **pipes**, **separate terminals** or neither.
 
 ### 1. By Pipes
 
@@ -59,7 +59,7 @@ or you can process all the files by using *:
 
 ### 3. Using slave
 
-To see the MD5 hash of a single file, run `./slave`. First, call `./slave`, then pass the file path.
+To see the MD5 hash of a single file, run `./slave`. First, call `./slave`, then write the file path in the terminal (standard input).
 
 
 ### 4. Using separate terminals
