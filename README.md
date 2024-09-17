@@ -71,12 +71,12 @@ To work with separate terminals, follow the steps:
   ```bash
   ./md5 <path 1> <path 2> <path 3> ...
   ```
+  
 - On **terminal 2**, execute the `./view` file to see the results saved in the shared memory:
-- 
+  
  ```bash
   ./view shared_memory
   ```
-
 
 
 ## Warnings
