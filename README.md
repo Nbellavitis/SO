@@ -41,7 +41,7 @@ The project can be executed, both **using pipes** or **with two terminals**.
 This method allows us to process multiple files in a single line;
 
 ```bash
-./md5 <file1> <file2> <file3> ... | ./view
+./md5 <path 1> <path 2> <path 3> ... | ./view
 ```
 or you can process all the files by using *:
 
@@ -56,7 +56,7 @@ To work with both terminals, follow the code:
 - On **terminal 1**, run the command `./md5` to get the MD5 hash from the files wanted:
 
   ```bash
-  ./md5 <file1> <file2> <file3> ...
+  ./md5 <path 1> <path 2> <path 3> ...
   ```
 -On **terminal 2**, execute the `./view` file to see the results saved in the shared memory:
 - 
